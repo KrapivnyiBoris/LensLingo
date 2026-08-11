@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <EditText
+        android:id="@+id/edit_search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Search words..." />
+
+    <Button
+        android:id="@+id/button_add_test_word"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add test word (debug)" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_words"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/button_start_training"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start training" />
+
+</LinearLayout>
