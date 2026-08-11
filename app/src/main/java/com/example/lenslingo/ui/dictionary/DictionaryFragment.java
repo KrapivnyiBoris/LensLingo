@@ -71,5 +71,14 @@ public class DictionaryFragment extends Fragment {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
             }
         });
+
+        Button startTrainingButton = view.findViewById(R.id.button_start_training);
+        startTrainingButton.setOnClickListener(v -> {
+            getParentFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new com.example.lenslingo.ui.trainer.TrainerFragment())
+                    .addToBackStack(null)
+                    .commit();
+        });
     }
 }
