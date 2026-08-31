@@ -80,5 +80,8 @@ public class DictionaryFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
+
+        view.findViewById(R.id.button_home).setOnClickListener(v ->
+                requireActivity().getSupportFragmentManager().popBackStack());
     }
 }

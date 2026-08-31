@@ -4,7 +4,7 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.lenslingo.ui.dictionary.DictionaryFragment;
+import com.example.lenslingo.ui.home.HomeFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -16,7 +16,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.fragment_container, new DictionaryFragment())
+                    .replace(R.id.fragment_container, new HomeFragment())
                     .commit();
         }
     }
