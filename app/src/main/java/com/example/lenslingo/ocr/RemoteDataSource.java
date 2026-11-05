@@ -44,6 +44,7 @@ public class RemoteDataSource {
     }
 
     public void recognizeAndTranslate(String base64Image, OcrCallback callback) {
+        android.util.Log.d("LensLingo", "API key empty: " + BuildConfig.GEMINI_API_KEY.isEmpty());
         try {
             JSONObject requestJson = buildRequestBody(base64Image);
 
@@ -66,7 +67,8 @@ public class RemoteDataSource {
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     if (!response.isSuccessful() || response.body() == null) {
-                        callback.onFailure(new IOException("Gemini API error: " + response.code()));
+                        String errorBody = response.body() != null ? response.body().string() : "no body";
+                        callback.onFailure(new IOException("Gemini API error " + response.code() + ": " + errorBody));
                         return;
                     }
                     try {

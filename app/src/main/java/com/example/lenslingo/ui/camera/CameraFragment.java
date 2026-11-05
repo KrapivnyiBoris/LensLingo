@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -26,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.lenslingo.R;
+import com.example.lenslingo.ui.shared.SharedOcrViewModel;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
@@ -40,6 +40,7 @@ public class CameraFragment extends Fragment {
     private CameraViewModel viewModel;
     private PreviewView previewView;
     private ProgressBar progressBar;
+    private SharedOcrViewModel sharedViewModel;
 
     private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
@@ -62,6 +63,7 @@ public class CameraFragment extends Fragment {
         previewView = view.findViewById(R.id.preview_view);
         progressBar = view.findViewById(R.id.progress_bar);
         cameraExecutor = Executors.newSingleThreadExecutor();
+        sharedViewModel = new ViewModelProvider(requireActivity()).get(SharedOcrViewModel.class);
 
         permissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
@@ -84,8 +86,12 @@ public class CameraFragment extends Fragment {
 
         viewModel.getOcrResult().observe(getViewLifecycleOwner(), result -> {
             if (result != null) {
-                Toast.makeText(requireContext(),
-                        "Recognized " + result.words.size() + " words", Toast.LENGTH_SHORT).show();
+                sharedViewModel.setResult(result);
+                requireActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new com.example.lenslingo.ui.result.ResultFragment())
+                        .addToBackStack(null)
+                        .commit();
             }
         });
 

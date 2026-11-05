@@ -38,6 +38,7 @@ public class OCRRepository {
 
                 @Override
                 public void onFailure(Exception e) {
+                    android.util.Log.e("LensLingo", "Gemini failed, falling back to offline", e);
                     fallbackToOffline(imageUri, callback);
                 }
             });
