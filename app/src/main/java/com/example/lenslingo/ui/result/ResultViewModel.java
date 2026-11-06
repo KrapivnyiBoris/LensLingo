@@ -25,7 +25,7 @@ public class ResultViewModel extends AndroidViewModel {
         return saveMessage;
     }
 
-    public void saveWord(OcrWord ocrWord, String sourceLanguage) {
+    public void saveWord(OcrWord ocrWord, String sourceLanguage, String photoUri) {
         if (ocrWord.translation == null || ocrWord.translation.isEmpty()) {
             saveMessage.postValue("No translation available for this word");
             return;
@@ -35,6 +35,7 @@ public class ResultViewModel extends AndroidViewModel {
         entity.word = ocrWord.text;
         entity.translation = ocrWord.translation;
         entity.sourceLanguage = sourceLanguage != null ? sourceLanguage : "auto";
+        entity.photoUri = photoUri;
         entity.dateAdded = System.currentTimeMillis();
         entity.nextReviewDate = System.currentTimeMillis();
 

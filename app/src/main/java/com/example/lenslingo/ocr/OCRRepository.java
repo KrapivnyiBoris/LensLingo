@@ -1,15 +1,13 @@
 package com.example.lenslingo.ocr;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.net.Uri;
 
 import com.example.lenslingo.data.model.OcrResult;
 import com.google.mlkit.vision.common.InputImage;
-
-import java.io.IOException;
 
 public class OCRRepository {
 
@@ -28,9 +26,10 @@ public class OCRRepository {
         void onFailure(Exception e);
     }
 
-    public void processImage(Uri imageUri, String base64Image, OcrCallback callback) {
+    public void processImage(Bitmap bitmap, OcrCallback callback) {
         if (isNetworkAvailable()) {
-            remoteDataSource.recognizeAndTranslate(base64Image, new RemoteDataSource.OcrCallback() {
+            String base64 = ImageUtils.toBase64(bitmap);
+            remoteDataSource.recognizeAndTranslate(base64, new RemoteDataSource.OcrCallback() {
                 @Override
                 public void onSuccess(OcrResult result) {
                     callback.onSuccess(result, false);
@@ -39,31 +38,27 @@ public class OCRRepository {
                 @Override
                 public void onFailure(Exception e) {
                     android.util.Log.e("LensLingo", "Gemini failed, falling back to offline", e);
-                    fallbackToOffline(imageUri, callback);
+                    fallbackToOffline(bitmap, callback);
                 }
             });
         } else {
-            fallbackToOffline(imageUri, callback);
+            fallbackToOffline(bitmap, callback);
         }
     }
 
-    private void fallbackToOffline(Uri imageUri, OcrCallback callback) {
-        try {
-            InputImage image = InputImage.fromFilePath(appContext, imageUri);
-            localDataSource.recognizeText(image, new LocalMLDataSource.OcrCallback() {
-                @Override
-                public void onSuccess(OcrResult result) {
-                    callback.onSuccess(result, true);
-                }
+    private void fallbackToOffline(Bitmap bitmap, OcrCallback callback) {
+        InputImage image = InputImage.fromBitmap(bitmap, 0);
+        localDataSource.recognizeText(image, new LocalMLDataSource.OcrCallback() {
+            @Override
+            public void onSuccess(OcrResult result) {
+                callback.onSuccess(result, true);
+            }
 
-                @Override
-                public void onFailure(Exception e) {
-                    callback.onFailure(e);
-                }
-            });
-        } catch (IOException e) {
-            callback.onFailure(e);
-        }
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
     }
 
     private boolean isNetworkAvailable() {

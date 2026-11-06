@@ -1,6 +1,7 @@
 package com.example.lenslingo.ui.camera;
 
 import android.app.Application;
+import android.graphics.Bitmap;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
@@ -11,7 +12,6 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.ocr.ImageUtils;
 import com.example.lenslingo.ocr.OCRRepository;
-import com.google.mlkit.vision.common.InputImage;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -44,16 +44,22 @@ public class CameraViewModel extends AndroidViewModel {
         return errorMessage;
     }
 
+    public void consumeResult() {
+        ocrResult.setValue(null);
+    }
+
     public void processImage(Uri imageUri) {
         isProcessing.setValue(true);
 
         executor.execute(() -> {
             try {
-                String base64 = ImageUtils.uriToBase64(getApplication(), imageUri);
+                Bitmap bitmap = ImageUtils.loadUprightBitmap(getApplication(), imageUri);
 
-                ocrRepository.processImage(imageUri, base64, new OCRRepository.OcrCallback() {
+                ocrRepository.processImage(bitmap, new OCRRepository.OcrCallback() {
                     @Override
                     public void onSuccess(OcrResult result, boolean wasOffline) {
+                        result.image = bitmap;
+                        result.imageUri = imageUri.toString();
                         isProcessing.postValue(false);
                         ocrResult.postValue(result);
                     }

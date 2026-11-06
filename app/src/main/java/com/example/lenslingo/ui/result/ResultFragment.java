@@ -5,13 +5,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,13 +20,16 @@ import com.example.lenslingo.R;
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
 import com.example.lenslingo.ui.shared.SharedOcrViewModel;
+import com.google.android.material.tabs.TabLayout;
 
 public class ResultFragment extends Fragment {
 
     private ResultViewModel viewModel;
     private SharedOcrViewModel sharedViewModel;
     private OcrWordAdapter adapter;
+
     private String currentSourceLanguage;
+    private String currentImageUri;
 
     @Nullable
     @Override
@@ -42,24 +45,49 @@ public class ResultFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(ResultViewModel.class);
         sharedViewModel = new ViewModelProvider(requireActivity()).get(SharedOcrViewModel.class);
 
+        BoundingBoxImageView imageBoxes = view.findViewById(R.id.image_boxes);
         RecyclerView recyclerView = view.findViewById(R.id.recycler_ocr_words);
+        TabLayout tabLayout = view.findViewById(R.id.tab_layout);
+        TextView languageText = view.findViewById(R.id.text_source_language);
+
         adapter = new OcrWordAdapter(this::showSaveDialog);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        TextView languageText = view.findViewById(R.id.text_source_language);
+        imageBoxes.setOnWordTapListener(this::showSaveDialog);
 
-        Button backButton = view.findViewById(R.id.button_back);
-        backButton.setOnClickListener(v ->
+        tabLayout.addTab(tabLayout.newTab().setText("Image"));
+        tabLayout.addTab(tabLayout.newTab().setText("Text"));
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                boolean imageTab = tab.getPosition() == 0;
+                imageBoxes.setVisibility(imageTab ? View.VISIBLE : View.GONE);
+                recyclerView.setVisibility(imageTab ? View.GONE : View.VISIBLE);
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+
+        view.findViewById(R.id.button_back).setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack(
-                        null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE));
+                        null, FragmentManager.POP_BACK_STACK_INCLUSIVE));
 
         sharedViewModel.getResult().observe(getViewLifecycleOwner(), (OcrResult result) -> {
             if (result == null) return;
 
             currentSourceLanguage = result.sourceLanguage;
+            currentImageUri = result.imageUri;
+
             languageText.setText("Detected: " + result.sourceLanguage
                     + (result.fromOnlineMode ? " (online)" : " (offline)"));
+
+            imageBoxes.setImage(result.image);
+            imageBoxes.setWords(result.words);
             adapter.submitList(result.words);
         });
 
@@ -73,7 +101,7 @@ public class ResultFragment extends Fragment {
                 .setTitle(word.text)
                 .setMessage(word.translation != null ? word.translation : "No translation available")
                 .setPositiveButton("Save", (dialog, which) ->
-                        viewModel.saveWord(word, currentSourceLanguage))
+                        viewModel.saveWord(word, currentSourceLanguage, currentImageUri))
                 .setNegativeButton("Close", null)
                 .show();
     }

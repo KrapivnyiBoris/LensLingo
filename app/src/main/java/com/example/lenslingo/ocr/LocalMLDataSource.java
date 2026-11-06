@@ -1,5 +1,7 @@
 package com.example.lenslingo.ocr;
 
+import android.graphics.Rect;
+
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
 import com.google.mlkit.vision.common.InputImage;
@@ -22,6 +24,9 @@ public class LocalMLDataSource {
     }
 
     public void recognizeText(InputImage image, OcrCallback callback) {
+        final int width = image.getWidth();
+        final int height = image.getHeight();
+
         recognizer.process(image)
                 .addOnSuccessListener(visionText -> {
                     List<OcrWord> words = new ArrayList<>();
@@ -29,10 +34,8 @@ public class LocalMLDataSource {
                     for (Text.TextBlock block : visionText.getTextBlocks()) {
                         for (Text.Line line : block.getLines()) {
                             for (Text.Element element : line.getElements()) {
-                                android.graphics.Rect box = element.getBoundingBox();
-                                int[] bbox = box != null
-                                        ? new int[]{box.top, box.left, box.bottom, box.right}
-                                        : null;
+                                Rect box = element.getBoundingBox();
+                                int[] bbox = box != null ? normalize(box, width, height) : null;
                                 words.add(new OcrWord(element.getText(), null, bbox));
                             }
                         }
@@ -41,5 +44,14 @@ public class LocalMLDataSource {
                     callback.onSuccess(new OcrResult(words, "auto", false));
                 })
                 .addOnFailureListener(callback::onFailure);
+    }
+
+    private int[] normalize(Rect box, int width, int height) {
+        return new int[]{
+                box.top * 1000 / height,
+                box.left * 1000 / width,
+                box.bottom * 1000 / height,
+                box.right * 1000 / width
+        };
     }
 }

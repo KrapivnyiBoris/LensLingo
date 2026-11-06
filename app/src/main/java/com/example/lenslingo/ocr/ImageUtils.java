@@ -3,6 +3,8 @@ package com.example.lenslingo.ocr;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.util.Base64;
 
@@ -15,32 +17,50 @@ public class ImageUtils {
     private static final int MAX_DIMENSION = 1600;
     private static final int JPEG_QUALITY = 80;
 
-    public static String uriToBase64(Context context, Uri uri) throws IOException {
-        Bitmap bitmap = loadScaledBitmap(context, uri);
+    public static Bitmap loadUprightBitmap(Context context, Uri uri) throws IOException {
+        int rotation = readRotation(context, uri);
 
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream);
-
-        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
-    }
-
-    private static Bitmap loadScaledBitmap(Context context, Uri uri) throws IOException {
-        InputStream input = context.getContentResolver().openInputStream(uri);
-        Bitmap original = BitmapFactory.decodeStream(input);
-        if (input != null) input.close();
-
+        Bitmap original;
+        try (InputStream input = context.getContentResolver().openInputStream(uri)) {
+            original = BitmapFactory.decodeStream(input);
+        }
         if (original == null) {
             throw new IOException("Could not decode image");
         }
 
-        int width = original.getWidth();
-        int height = original.getHeight();
-        float scale = Math.min(1f, (float) MAX_DIMENSION / Math.max(width, height));
+        float scale = Math.min(1f,
+                (float) MAX_DIMENSION / Math.max(original.getWidth(), original.getHeight()));
+        if (scale == 1f && rotation == 0) {
+            return original;
+        }
 
-        if (scale >= 1f) return original;
+        Matrix matrix = new Matrix();
+        matrix.postScale(scale, scale);
+        matrix.postRotate(rotation);
+        return Bitmap.createBitmap(original, 0, 0,
+                original.getWidth(), original.getHeight(), matrix, true);
+    }
 
-        int newWidth = Math.round(width * scale);
-        int newHeight = Math.round(height * scale);
-        return Bitmap.createScaledBitmap(original, newWidth, newHeight, true);
+    public static String toBase64(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream);
+        return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP);
+    }
+
+    private static int readRotation(Context context, Uri uri) {
+        try (InputStream input = context.getContentResolver().openInputStream(uri)) {
+            if (input == null) return 0;
+            ExifInterface exif = new ExifInterface(input);
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90: return 90;
+                case ExifInterface.ORIENTATION_ROTATE_180: return 180;
+                case ExifInterface.ORIENTATION_ROTATE_270: return 270;
+                default: return 0;
+            }
+        } catch (IOException e) {
+            return 0;
+        }
     }
 }

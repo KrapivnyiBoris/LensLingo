@@ -87,6 +87,7 @@ public class CameraFragment extends Fragment {
         viewModel.getOcrResult().observe(getViewLifecycleOwner(), result -> {
             if (result != null) {
                 sharedViewModel.setResult(result);
+                viewModel.consumeResult();
                 requireActivity().getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_container, new com.example.lenslingo.ui.result.ResultFragment())
