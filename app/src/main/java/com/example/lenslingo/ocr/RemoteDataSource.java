@@ -25,16 +25,15 @@ import okhttp3.Response;
 
 public class RemoteDataSource {
 
-    private static final String ENDPOINT =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
+    private static final String BASE_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/";
     private final OkHttpClient client;
     private final Gson gson = new Gson();
 
     public RemoteDataSource() {
         client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -52,7 +51,8 @@ public class RemoteDataSource {
                     requestJson.toString(),
                     MediaType.parse("application/json"));
 
-            HttpUrl url = HttpUrl.parse(ENDPOINT).newBuilder()
+            HttpUrl url = HttpUrl.parse(BASE_URL + BuildConfig.GEMINI_MODEL + ":generateContent")
+                    .newBuilder()
                     .addQueryParameter("key", BuildConfig.GEMINI_API_KEY)
                     .build();
 
@@ -105,10 +105,17 @@ public class RemoteDataSource {
         JSONObject content = new JSONObject().put("parts", parts);
         JSONArray contents = new JSONArray().put(content);
 
-        return new JSONObject().put("contents", contents);
+        JSONObject generationConfig = new JSONObject()
+                .put("temperature", 0)
+                .put("responseMimeType", "application/json");
+
+        return new JSONObject()
+                .put("contents", contents)
+                .put("generationConfig", generationConfig);
     }
 
     private OcrResult parseGeminiResponse(String rawBody) throws JSONException {
+        android.util.Log.d("LensLingo", "Model raw text: " + rawBody);
         JSONObject root = new JSONObject(rawBody);
 
         String modelText = root
