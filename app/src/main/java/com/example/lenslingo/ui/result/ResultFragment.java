@@ -22,6 +22,8 @@ import com.example.lenslingo.data.model.OcrWord;
 import com.example.lenslingo.ui.shared.SharedOcrViewModel;
 import com.google.android.material.tabs.TabLayout;
 
+import java.util.List;
+
 public class ResultFragment extends Fragment {
 
     private ResultViewModel viewModel;
@@ -86,9 +88,10 @@ public class ResultFragment extends Fragment {
             languageText.setText("Detected: " + result.sourceLanguage
                     + (result.fromOnlineMode ? " (online)" : " (offline)"));
 
+            List<OcrWord> visible = result.visibleWords();
             imageBoxes.setImage(result.image);
-            imageBoxes.setWords(result.words);
-            adapter.submitList(result.words);
+            imageBoxes.setWords(visible);
+            adapter.submitList(visible);
         });
 
         viewModel.getSaveMessage().observe(getViewLifecycleOwner(), message -> {

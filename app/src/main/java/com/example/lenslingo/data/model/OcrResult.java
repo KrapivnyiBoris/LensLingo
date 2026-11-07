@@ -2,6 +2,7 @@ package com.example.lenslingo.data.model;
 
 import android.graphics.Bitmap;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OcrResult {
@@ -16,5 +17,13 @@ public class OcrResult {
         this.words = words;
         this.sourceLanguage = sourceLanguage;
         this.fromOnlineMode = fromOnlineMode;
+    }
+
+    public List<OcrWord> visibleWords() {
+        List<OcrWord> visible = new ArrayList<>();
+        for (OcrWord word : words) {
+            if (word.highlight) visible.add(word);
+        }
+        return visible;
     }
 }

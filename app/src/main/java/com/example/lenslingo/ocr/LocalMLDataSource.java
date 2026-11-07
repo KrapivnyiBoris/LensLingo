@@ -1,5 +1,6 @@
 package com.example.lenslingo.ocr;
 
+import android.graphics.Point;
 import android.graphics.Rect;
 
 import com.example.lenslingo.data.model.OcrResult;
@@ -34,9 +35,13 @@ public class LocalMLDataSource {
                     for (Text.TextBlock block : visionText.getTextBlocks()) {
                         for (Text.Line line : block.getLines()) {
                             for (Text.Element element : line.getElements()) {
-                                Rect box = element.getBoundingBox();
-                                int[] bbox = box != null ? normalize(box, width, height) : null;
-                                words.add(new OcrWord(element.getText(), null, bbox));
+                                String text = element.getText().trim();
+                                if (!isMeaningful(text)) continue;
+
+                                float[] corners = toCorners(element, width, height);
+                                if (corners == null) continue;
+
+                                words.add(new OcrWord(text, null, corners));
                             }
                         }
                     }
@@ -46,12 +51,31 @@ public class LocalMLDataSource {
                 .addOnFailureListener(callback::onFailure);
     }
 
-    private int[] normalize(Rect box, int width, int height) {
-        return new int[]{
-                box.top * 1000 / height,
-                box.left * 1000 / width,
-                box.bottom * 1000 / height,
-                box.right * 1000 / width
-        };
+    private boolean isMeaningful(String text) {
+        if (text.length() < 2) return false;
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.isLetter(text.charAt(i))) return true;
+        }
+        return false;
+    }
+
+    private float[] toCorners(Text.Element element, int width, int height) {
+        Point[] points = element.getCornerPoints();
+        if (points != null && points.length == 4) {
+            float[] out = new float[8];
+            for (int i = 0; i < 4; i++) {
+                out[i * 2] = points[i].x / (float) width;
+                out[i * 2 + 1] = points[i].y / (float) height;
+            }
+            return out;
+        }
+
+        Rect box = element.getBoundingBox();
+        if (box == null) return null;
+        float l = box.left / (float) width;
+        float t = box.top / (float) height;
+        float r = box.right / (float) width;
+        float b = box.bottom / (float) height;
+        return new float[]{l, t, r, t, r, b, l, b};
     }
 }

@@ -1,7 +1,6 @@
 package com.example.lenslingo.ocr;
 
 import com.example.lenslingo.BuildConfig;
-import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
 import com.google.gson.Gson;
 
@@ -10,8 +9,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -27,6 +27,7 @@ public class RemoteDataSource {
 
     private static final String BASE_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/";
+
     private final OkHttpClient client;
     private final Gson gson = new Gson();
 
@@ -37,19 +38,17 @@ public class RemoteDataSource {
                 .build();
     }
 
-    public interface OcrCallback {
-        void onSuccess(OcrResult result);
+    public interface TranslationCallback {
+        void onSuccess(String sourceLanguage, Map<Integer, String> translations);
         void onFailure(Exception e);
     }
 
-    public void recognizeAndTranslate(String base64Image, OcrCallback callback) {
-        android.util.Log.d("LensLingo", "API key empty: " + BuildConfig.GEMINI_API_KEY.isEmpty());
+    public void translateWords(String base64Image, List<OcrWord> words, TranslationCallback callback) {
         try {
-            JSONObject requestJson = buildRequestBody(base64Image);
+            JSONObject requestJson = buildRequestBody(base64Image, words);
 
             RequestBody body = RequestBody.create(
-                    requestJson.toString(),
-                    MediaType.parse("application/json"));
+                    requestJson.toString(), MediaType.parse("application/json"));
 
             HttpUrl url = HttpUrl.parse(BASE_URL + BuildConfig.GEMINI_MODEL + ":generateContent")
                     .newBuilder()
@@ -66,14 +65,14 @@ public class RemoteDataSource {
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
-                    if (!response.isSuccessful() || response.body() == null) {
-                        String errorBody = response.body() != null ? response.body().string() : "no body";
-                        callback.onFailure(new IOException("Gemini API error " + response.code() + ": " + errorBody));
+                    String responseBody = response.body() != null ? response.body().string() : null;
+                    if (!response.isSuccessful() || responseBody == null) {
+                        callback.onFailure(new IOException(
+                                "Gemini API error " + response.code() + ": " + responseBody));
                         return;
                     }
                     try {
-                        OcrResult result = parseGeminiResponse(response.body().string());
-                        callback.onSuccess(result);
+                        parseResponse(responseBody, callback);
                     } catch (Exception e) {
                         callback.onFailure(e);
                     }
@@ -84,61 +83,73 @@ public class RemoteDataSource {
         }
     }
 
-    private JSONObject buildRequestBody(String base64Image) throws JSONException {
-        String prompt = "You will receive a photo containing text in a foreign language. "
-                + "Detect every distinct word or short phrase, translate each into Ukrainian, "
-                + "and return ONLY a raw JSON object, no markdown formatting, no explanation, "
-                + "in exactly this shape:\n"
-                + "{\"sourceLanguage\":\"<ISO 639-1 code>\","
-                + "\"words\":[{\"text\":\"<original word>\",\"translation\":\"<Ukrainian translation>\","
-                + "\"box\":[ymin,xmin,ymax,xmax]}]}\n"
-                + "Coordinates in box are normalized to a 0-1000 scale relative to image dimensions.";
+    private JSONObject buildRequestBody(String base64Image, List<OcrWord> words) throws JSONException {
+        StringBuilder list = new StringBuilder();
+        for (int i = 0; i < words.size(); i++) {
+            list.append(i + 1).append(": ").append(words.get(i).text).append("\n");
+        }
+
+        String prompt = "You are given a photo and a numbered list of words that an OCR engine "
+                + "found on it. Translate each word into Ukrainian, choosing the meaning that fits "
+                + "the context of the photo: the surrounding text, the kind of object, the scene.\n"
+                + "Rules:\n"
+                + "- Translate the single word only, not the whole sentence.\n"
+                + "- If an item is a brand name, logo, abbreviation, code, number, a fragment "
+                + "without meaning, or anything that should not be translated, return an empty "
+                + "string for it.\n"
+                + "- Also detect the main language of the text on the photo as an ISO 639-1 code.\n"
+                + "Return ONLY a raw JSON object, no markdown, exactly in this shape:\n"
+                + "{\"sourceLanguage\":\"es\",\"translations\":[{\"id\":1,\"t\":\"переклад\"}]}\n"
+                + "Include every id from the list.\n\n"
+                + "Words:\n" + list;
 
         JSONObject textPart = new JSONObject().put("text", prompt);
-
-        JSONObject inlineData = new JSONObject()
+        JSONObject imagePart = new JSONObject().put("inline_data", new JSONObject()
                 .put("mime_type", "image/jpeg")
-                .put("data", base64Image);
-        JSONObject imagePart = new JSONObject().put("inline_data", inlineData);
+                .put("data", base64Image));
 
-        JSONArray parts = new JSONArray().put(textPart).put(imagePart);
-        JSONObject content = new JSONObject().put("parts", parts);
-        JSONArray contents = new JSONArray().put(content);
-
+        JSONObject content = new JSONObject().put("parts", new JSONArray().put(textPart).put(imagePart));
         JSONObject generationConfig = new JSONObject()
                 .put("temperature", 0)
                 .put("responseMimeType", "application/json");
 
         return new JSONObject()
-                .put("contents", contents)
+                .put("contents", new JSONArray().put(content))
                 .put("generationConfig", generationConfig);
     }
 
-    private OcrResult parseGeminiResponse(String rawBody) throws JSONException {
-        android.util.Log.d("LensLingo", "Model raw text: " + rawBody);
-        JSONObject root = new JSONObject(rawBody);
-
-        String modelText = root
+    private void parseResponse(String rawBody, TranslationCallback callback) throws JSONException {
+        JSONArray parts = new JSONObject(rawBody)
                 .getJSONArray("candidates")
                 .getJSONObject(0)
                 .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text");
+                .getJSONArray("parts");
 
-        String cleanJson = modelText.trim()
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < parts.length(); i++) {
+            JSONObject part = parts.getJSONObject(i);
+            if (!part.optBoolean("thought", false)) {
+                text.append(part.optString("text", ""));
+            }
+        }
+
+        String clean = text.toString().trim()
                 .replaceAll("^```json", "")
                 .replaceAll("^```", "")
                 .replaceAll("```$", "")
                 .trim();
 
-        GeminiOcrPayload payload = gson.fromJson(cleanJson, GeminiOcrPayload.class);
+        android.util.Log.d("LensLingo", "Model raw text: " + clean);
 
-        List<OcrWord> words = new ArrayList<>();
-        for (GeminiOcrPayload.WordDto dto : payload.words) {
-            words.add(new OcrWord(dto.text, dto.translation, dto.box));
+        GeminiTranslationPayload payload = gson.fromJson(clean, GeminiTranslationPayload.class);
+        if (payload == null || payload.translations == null) {
+            throw new JSONException("Empty translation payload");
         }
 
-        return new OcrResult(words, payload.sourceLanguage, true);
+        Map<Integer, String> map = new HashMap<>();
+        for (GeminiTranslationPayload.Item item : payload.translations) {
+            map.put(item.id, item.t);
+        }
+        callback.onSuccess(payload.sourceLanguage, map);
     }
 }
