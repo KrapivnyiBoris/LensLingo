@@ -31,8 +31,13 @@ public class ResultViewModel extends AndroidViewModel {
             return;
         }
 
+        if (ocrWord.translation.startsWith("(")) {
+            saveMessage.postValue("This word has no standalone translation");
+            return;
+        }
+
         WordEntity entity = new WordEntity();
-        entity.word = ocrWord.text;
+        entity.word = ocrWord.shownText();
         entity.translation = ocrWord.translation;
         entity.sourceLanguage = sourceLanguage != null ? sourceLanguage : "auto";
         entity.photoUri = photoUri;

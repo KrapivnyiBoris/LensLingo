@@ -44,7 +44,7 @@ public class OcrWordAdapter extends RecyclerView.Adapter<OcrWordAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OcrWord word = words.get(position);
-        holder.wordText.setText(word.text);
+        holder.wordText.setText(word.shownText());
         holder.translationText.setText(
                 word.translation != null ? word.translation : "(no translation)");
         holder.itemView.setOnClickListener(v -> listener.onWordClick(word));

@@ -9,6 +9,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.graphics.CornerPathEffect;
 
 import com.example.lenslingo.data.model.OcrWord;
 
@@ -21,8 +22,20 @@ public class BoundingBoxImageView extends View {
         void onWordTap(OcrWord word);
     }
 
-    private static final float DRAW_SCALE = 1.08f;
+    public static boolean SOFT_STYLE = true;
+    public static boolean DEBUG_LINES = false;
+    private static final float PAD_LEFT_CHARS = 0f;
+    private static final float PAD_RIGHT = 0f;
+    private final Paint debugPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    private static final float DRAW_SCALE = 1.03f;
     private static final float HIT_SCALE = 1.3f;
+
+    private static final int COLOR_WORD = 0xFF1976D2;
+    private static final int COLOR_NAME = 0xFF8E24AA;
+    private static final int COLOR_SELECTED = 0xFF2E7D32;
+
+    private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private Bitmap bitmap;
     private List<OcrWord> words = new ArrayList<>();
@@ -35,7 +48,6 @@ public class BoundingBoxImageView extends View {
     private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint boxPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint selectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private float density;
 
     public BoundingBoxImageView(Context context) {
@@ -56,14 +68,13 @@ public class BoundingBoxImageView extends View {
         outlinePaint.setStrokeJoin(Paint.Join.ROUND);
 
         boxPaint.setStyle(Paint.Style.STROKE);
-        boxPaint.setColor(0xFF1976D2);
-        boxPaint.setStrokeWidth(2 * density);
         boxPaint.setStrokeJoin(Paint.Join.ROUND);
 
-        selectedPaint.setStyle(Paint.Style.STROKE);
-        selectedPaint.setColor(0xFF2E7D32);
-        selectedPaint.setStrokeWidth(3.5f * density);
-        selectedPaint.setStrokeJoin(Paint.Join.ROUND);
+        fillPaint.setStyle(Paint.Style.FILL);
+
+        debugPaint.setStyle(Paint.Style.STROKE);
+        debugPaint.setColor(0xFFE53935);
+        debugPaint.setStrokeWidth(1f * density);
     }
 
     public void setImage(Bitmap bitmap) {
@@ -90,15 +101,27 @@ public class BoundingBoxImageView extends View {
         canvas.drawBitmap(bitmap, null, imageRect, bitmapPaint);
 
         for (OcrWord word : words) {
-            if (word == selectedWord) continue;
-            drawWord(canvas, word, boxPaint);
+            if (word != selectedWord) drawWord(canvas, word, false);
         }
-        if (selectedWord != null) {
-            drawWord(canvas, selectedWord, selectedPaint);
+        if (selectedWord != null) drawWord(canvas, selectedWord, true);
+
+        if (DEBUG_LINES) {
+            int last = -1;
+            for (OcrWord word : words) {
+                if (word.lineIndex == last || word.lineBox == null) continue;
+                last = word.lineIndex;
+                float[] b = word.lineBox;
+                canvas.drawRect(
+                        imageRect.left + b[0] * imageRect.width(),
+                        imageRect.top + b[1] * imageRect.height(),
+                        imageRect.left + b[2] * imageRect.width(),
+                        imageRect.top + b[3] * imageRect.height(),
+                        debugPaint);
+            }
         }
     }
 
-    private void drawWord(Canvas canvas, OcrWord word, Paint colorPaint) {
+    private void drawWord(Canvas canvas, OcrWord word, boolean selected) {
         if (!fillQuad(word, DRAW_SCALE)) return;
 
         path.reset();
@@ -108,9 +131,35 @@ public class BoundingBoxImageView extends View {
         path.lineTo(quad[6], quad[7]);
         path.close();
 
-        outlinePaint.setStrokeWidth(colorPaint.getStrokeWidth() + 3 * density);
+        int color = selected ? COLOR_SELECTED
+                : (word.kind == OcrWord.KIND_NAME ? COLOR_NAME : COLOR_WORD);
+
+        if (SOFT_STYLE) {
+            fillPaint.setPathEffect(new CornerPathEffect(4 * density));
+            fillPaint.setColor(color);
+            fillPaint.setAlpha(selected ? 120 : 30);
+            canvas.drawPath(path, fillPaint);
+            fillPaint.setPathEffect(null);
+
+            if (selected) {
+                boxPaint.setPathEffect(new CornerPathEffect(4 * density));
+                boxPaint.setColor(color);
+                boxPaint.setStrokeWidth(2 * density);
+                canvas.drawPath(path, boxPaint);
+                boxPaint.setPathEffect(null);
+            }
+            return;
+        }
+
+        float stroke = (selected ? 2.5f : 1.2f) * density;
+        fillPaint.setColor(color);
+        fillPaint.setAlpha(selected ? 60 : 32);
+        canvas.drawPath(path, fillPaint);
+        outlinePaint.setStrokeWidth(stroke + 2 * density);
         canvas.drawPath(path, outlinePaint);
-        canvas.drawPath(path, colorPaint);
+        boxPaint.setColor(color);
+        boxPaint.setStrokeWidth(stroke);
+        canvas.drawPath(path, boxPaint);
     }
 
     @Override
@@ -167,6 +216,23 @@ public class BoundingBoxImageView extends View {
             quad[i * 2] = cx + (quad[i * 2] - cx) * scale;
             quad[i * 2 + 1] = cy + (quad[i * 2 + 1] - cy) * scale;
         }
+
+        float ux = quad[2] - quad[0];
+        float uy = quad[3] - quad[1];
+        float width = (float) Math.hypot(ux, uy);
+        float height = (float) Math.hypot(quad[6] - quad[0], quad[7] - quad[1]);
+        if (width > 0) {
+            ux /= width;
+            uy /= width;
+            float charWidth = width / Math.max(1, word.text.length());
+            float l = PAD_LEFT_CHARS * charWidth;
+            float r = PAD_RIGHT * height;
+            quad[0] -= ux * l; quad[1] -= uy * l;
+            quad[6] -= ux * l; quad[7] -= uy * l;
+            quad[2] += ux * r; quad[3] += uy * r;
+            quad[4] += ux * r; quad[5] += uy * r;
+        }
+
         return true;
     }
 

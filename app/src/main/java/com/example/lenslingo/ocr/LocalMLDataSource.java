@@ -31,17 +31,29 @@ public class LocalMLDataSource {
         recognizer.process(image)
                 .addOnSuccessListener(visionText -> {
                     List<OcrWord> words = new ArrayList<>();
+                    int lineIndex = 0;
 
                     for (Text.TextBlock block : visionText.getTextBlocks()) {
                         for (Text.Line line : block.getLines()) {
+                            lineIndex++;
+                            float[] lineBox = toBox(line.getBoundingBox(), width, height);
+
                             for (Text.Element element : line.getElements()) {
                                 String text = element.getText().trim();
-                                if (!isMeaningful(text)) continue;
+                                String reason = rejectReason(text, element.getConfidence());
+                                if (reason != null) {
+                                    OcrLog.d(String.format(java.util.Locale.US, "DROP \"%s\" reason=%s conf=%.2f",
+                                            text, reason, element.getConfidence()));
+                                    continue;
+                                }
 
                                 float[] corners = toCorners(element, width, height);
                                 if (corners == null) continue;
 
-                                words.add(new OcrWord(text, null, corners));
+                                OcrWord word = new OcrWord(text, null, corners,
+                                        element.getConfidence(), lineIndex);
+                                word.lineBox = lineBox;
+                                words.add(word);
                             }
                         }
                     }
@@ -51,12 +63,21 @@ public class LocalMLDataSource {
                 .addOnFailureListener(callback::onFailure);
     }
 
-    private boolean isMeaningful(String text) {
-        if (text.length() < 2) return false;
-        for (int i = 0; i < text.length(); i++) {
-            if (Character.isLetter(text.charAt(i))) return true;
-        }
-        return false;
+    private static final float MIN_CONFIDENCE = 0.40f;
+    private static final String WORD_PATTERN =
+            "^[\\p{Ps}\\p{Pi}\"']*\\p{L}+(?:['’\\-]\\p{L}+)*\\p{P}*$";
+
+    private String rejectReason(String text, float confidence) {
+        if (text.length() < 2) return "short";
+        if (confidence < MIN_CONFIDENCE) return "low_conf";
+        if (!text.matches(WORD_PATTERN)) return "charset";
+        return null;
+    }
+
+    private float[] toBox(Rect r, int width, int height) {
+        if (r == null) return null;
+        return new float[]{r.left / (float) width, r.top / (float) height,
+                r.right / (float) width, r.bottom / (float) height};
     }
 
     private float[] toCorners(Text.Element element, int width, int height) {
@@ -70,12 +91,8 @@ public class LocalMLDataSource {
             return out;
         }
 
-        Rect box = element.getBoundingBox();
-        if (box == null) return null;
-        float l = box.left / (float) width;
-        float t = box.top / (float) height;
-        float r = box.right / (float) width;
-        float b = box.bottom / (float) height;
-        return new float[]{l, t, r, t, r, b, l, b};
+        float[] b = toBox(element.getBoundingBox(), width, height);
+        if (b == null) return null;
+        return new float[]{b[0], b[1], b[2], b[1], b[2], b[3], b[0], b[3]};
     }
 }

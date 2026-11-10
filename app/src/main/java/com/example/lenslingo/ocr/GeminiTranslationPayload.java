@@ -2,12 +2,22 @@ package com.example.lenslingo.ocr;
 
 import java.util.List;
 
-class GeminiTranslationPayload {
-    String sourceLanguage;
-    List<Item> translations;
+public class GeminiTranslationPayload {
+    public String sourceLanguage;
+    public List<Item> items;
 
-    static class Item {
-        int id;
-        String t;
+    public static class Item {
+        public int id;
+        public String w;
+        public String t;
+        public String k;
+        public String c;
+    }
+
+    public List<Line> lines;
+
+    public static class Line {
+        public int n;
+        public String t;
     }
 }

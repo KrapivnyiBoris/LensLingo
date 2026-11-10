@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.lenslingo.R;
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
+import com.example.lenslingo.ocr.OcrLog;
 import com.example.lenslingo.ui.shared.SharedOcrViewModel;
 import com.google.android.material.tabs.TabLayout;
 
@@ -100,8 +101,11 @@ public class ResultFragment extends Fragment {
     }
 
     private void showSaveDialog(OcrWord word) {
+        OcrLog.d("TAP \"" + word.text + "\" shown=\"" + word.shownText()
+                + "\" kind=" + word.kind + " box=" + OcrLog.fmt(word.box()));
+
         new AlertDialog.Builder(requireContext())
-                .setTitle(word.text)
+                .setTitle(word.shownText())
                 .setMessage(word.translation != null ? word.translation : "No translation available")
                 .setPositiveButton("Save", (dialog, which) ->
                         viewModel.saveWord(word, currentSourceLanguage, currentImageUri))

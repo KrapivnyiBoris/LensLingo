@@ -5,17 +5,26 @@ import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.os.SystemClock;
 
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
 import com.google.mlkit.vision.common.InputImage;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class OCRRepository {
+
+    private static final boolean ENHANCE_EXPERIMENT = false;
+    private static final boolean USE_ENHANCED_BOXES = false;
 
     private final Context appContext;
     private final LocalMLDataSource localDataSource;
@@ -34,53 +43,204 @@ public class OCRRepository {
     }
 
     public void processImage(Bitmap bitmap, OcrCallback callback) {
-        InputImage image = InputImage.fromBitmap(bitmap, 0);
+        OcrLog.startRun(bitmap.getWidth(), bitmap.getHeight());
+        final long start = SystemClock.elapsedRealtime();
 
-        localDataSource.recognizeText(image, new LocalMLDataSource.OcrCallback() {
-            @Override
-            public void onSuccess(OcrResult local) {
-                if (local.words.isEmpty()) {
-                    callback.onFailure(new IllegalStateException("No text found"));
-                } else if (isNetworkAvailable()) {
-                    translateOnline(bitmap, local, callback);
-                } else {
-                    callback.onSuccess(local, true);
+        localDataSource.recognizeText(InputImage.fromBitmap(bitmap, 0),
+                new LocalMLDataSource.OcrCallback() {
+                    @Override
+                    public void onSuccess(OcrResult original) {
+                        OcrLog.d("ML Kit finished in " + (SystemClock.elapsedRealtime() - start) + " ms");
+                        OcrLog.dumpWords("ML_KIT", original.words);
+
+                        if (!ENHANCE_EXPERIMENT || original.words.isEmpty()) {
+                            proceed(bitmap, original, callback);
+                            return;
+                        }
+
+                        Bitmap enhanced = ImageEnhancer.enhance(bitmap);
+                        localDataSource.recognizeText(InputImage.fromBitmap(enhanced, 0),
+                                new LocalMLDataSource.OcrCallback() {
+                                    @Override
+                                    public void onSuccess(OcrResult enh) {
+                                        OcrLog.dumpWords("ML_KIT_ENHANCED", enh.words);
+                                        compareBoxes(original.words, enh.words);
+                                        boolean useEnh = USE_ENHANCED_BOXES && !enh.words.isEmpty();
+                                        OcrLog.d("BOXES SOURCE: " + (useEnh ? "enhanced" : "original"));
+                                        proceed(bitmap, useEnh ? enh : original, callback);
+                                    }
+
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        OcrLog.d("Enhanced pass failed: " + e);
+                                        proceed(bitmap, original, callback);
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        OcrLog.d("ML Kit failed: " + e);
+                        callback.onFailure(e);
+                    }
+                });
+    }
+
+    private void proceed(Bitmap bitmap, OcrResult local, OcrCallback callback) {
+        if (local.words.isEmpty()) {
+            OcrLog.d("RESULT: no text found");
+            callback.onFailure(new IllegalStateException("No text found"));
+        } else if (isNetworkAvailable()) {
+            translateOnline(bitmap, local, callback);
+        } else {
+            OcrLog.d("MODE offline: no network");
+            callback.onSuccess(local, true);
+        }
+    }
+
+    private void compareBoxes(List<OcrWord> orig, List<OcrWord> enh) {
+        float sumL = 0, sumR = 0;
+        int matched = 0;
+
+        for (OcrWord o : orig) {
+            float[] ob = o.box();
+            if (ob == null) continue;
+
+            OcrWord best = null;
+            float bestDist = Float.MAX_VALUE;
+            for (OcrWord e : enh) {
+                float[] eb = e.box();
+                if (eb == null || !norm(e.text).equals(norm(o.text))) continue;
+                float dist = Math.abs((eb[0] + eb[2]) - (ob[0] + ob[2]))
+                        + Math.abs((eb[1] + eb[3]) - (ob[1] + ob[3]));
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = e;
                 }
             }
 
-            @Override
-            public void onFailure(Exception e) {
-                callback.onFailure(e);
+            if (best == null) {
+                OcrLog.d("CMP \"" + o.text + "\" not found in enhanced");
+                continue;
             }
-        });
+
+            float[] eb = best.box();
+            float dL = ob[0] - eb[0];
+            float dR = eb[2] - ob[2];
+            sumL += dL;
+            sumR += dR;
+            matched++;
+            OcrLog.d(String.format(Locale.US, "CMP \"%s\" dLeft=%+.3f dRight=%+.3f conf %.2f->%.2f",
+                    o.text, dL, dR, o.confidence, best.confidence));
+        }
+
+        if (matched > 0) {
+            OcrLog.d(String.format(Locale.US, "CMP SUMMARY matched=%d/%d avgLeft=%+.4f avgRight=%+.4f",
+                    matched, orig.size(), sumL / matched, sumR / matched));
+        }
     }
 
     private void translateOnline(Bitmap bitmap, OcrResult local, OcrCallback callback) {
         executor.execute(() -> {
+            final long start = SystemClock.elapsedRealtime();
             String base64 = ImageUtils.toBase64(bitmap);
 
             remoteDataSource.translateWords(base64, local.words, new RemoteDataSource.TranslationCallback() {
                 @Override
-                public void onSuccess(String sourceLanguage, Map<Integer, String> translations) {
-                    List<OcrWord> words = local.words;
-                    for (int i = 0; i < words.size(); i++) {
-                        OcrWord word = words.get(i);
-                        String t = translations.get(i + 1);
-                        boolean useful = t != null && !t.trim().isEmpty()
-                                && !t.trim().equalsIgnoreCase(word.text);
-                        word.translation = useful ? t.trim() : null;
-                        word.highlight = useful;
-                    }
-                    callback.onSuccess(new OcrResult(words, sourceLanguage, true), false);
+                public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items) {
+                    OcrLog.d("Gemini finished in " + (SystemClock.elapsedRealtime() - start)
+                            + " ms, items=" + items.size() + ", sent=" + local.words.size());
+
+                    applyTranslations(local.words, items);
+                    flagSuspects(local.words);
+                    OcrLog.dumpWords("FINAL", local.words);
+
+                    String lang = sourceLanguage != null ? sourceLanguage : "auto";
+                    callback.onSuccess(new OcrResult(local.words, lang, true), false);
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    android.util.Log.e("LensLingo", "Gemini failed, using offline result", e);
+                    OcrLog.d("MODE offline: Gemini failed: " + e);
                     callback.onSuccess(local, true);
                 }
             });
         });
+    }
+
+    private void applyTranslations(List<OcrWord> words, List<GeminiTranslationPayload.Item> items) {
+        Map<Integer, GeminiTranslationPayload.Item> byId = new HashMap<>();
+        Map<String, ArrayDeque<GeminiTranslationPayload.Item>> byText = new HashMap<>();
+        for (GeminiTranslationPayload.Item item : items) {
+            byId.put(item.id, item);
+            byText.computeIfAbsent(norm(item.w), k -> new ArrayDeque<>()).add(item);
+        }
+
+        Set<GeminiTranslationPayload.Item> used = new HashSet<>();
+
+        for (int i = 0; i < words.size(); i++) {
+            OcrWord word = words.get(i);
+            int id = i + 1;
+            GeminiTranslationPayload.Item item = byId.get(id);
+
+            boolean idOk = item != null
+                    && (item.w == null || item.w.isEmpty()
+                    || norm(item.w).equals(norm(word.text)));
+
+            if (!idOk) {
+                if (item != null) {
+                    OcrLog.d("MISMATCH id=" + id + " expected=\"" + word.text
+                            + "\" got=\"" + item.w + "\"");
+                }
+                item = null;
+                ArrayDeque<GeminiTranslationPayload.Item> candidates = byText.get(norm(word.text));
+                if (candidates != null) {
+                    for (GeminiTranslationPayload.Item c : candidates) {
+                        if (!used.contains(c)) {
+                            item = c;
+                            OcrLog.d("REMAP id=" + id + " \"" + word.text
+                                    + "\" taken from item id=" + c.id);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (item == null) {
+                OcrLog.d("MISSING id=" + id + " \"" + word.text + "\"");
+                word.translation = null;
+                word.highlight = false;
+                continue;
+            }
+
+            used.add(item);
+            apply(word, item);
+        }
+    }
+
+    private void apply(OcrWord word, GeminiTranslationPayload.Item item) {
+        String t = item.t == null ? ""
+                : item.t.trim().replaceAll("[\\p{P}&&[^()]]+$", "");
+        String kind = item.k == null ? "word" : item.k.trim().toLowerCase(Locale.ROOT);
+        String c = item.c == null ? "" : item.c.trim();
+
+        word.kind = kind.equals("name") ? OcrWord.KIND_NAME
+                : kind.equals("noise") ? OcrWord.KIND_NOISE
+                  : OcrWord.KIND_WORD;
+
+        String base = !c.isEmpty() ? c : word.text;
+        String clean = base.replaceAll("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$", "");
+        if (!clean.isEmpty() && !clean.equals(word.text)) {
+            word.displayText = clean;
+        }
+
+        word.translation = t.isEmpty() ? null : t;
+        word.highlight = word.kind != OcrWord.KIND_NOISE && !t.isEmpty();
+    }
+
+    private String norm(String s) {
+        if (s == null) return "";
+        return s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
     private boolean isNetworkAvailable() {
@@ -92,5 +252,18 @@ public class OCRRepository {
         NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
         return capabilities != null
                 && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+    }
+
+    private void flagSuspects(List<OcrWord> words) {
+        for (int i = 1; i < words.size(); i++) {
+            OcrWord a = words.get(i - 1);
+            OcrWord b = words.get(i);
+            if (a.lineIndex == b.lineIndex && a.translation != null
+                    && a.translation.equalsIgnoreCase(b.translation)
+                    && !a.text.equalsIgnoreCase(b.text)) {
+                OcrLog.d("SUSPECT same translation \"" + a.translation + "\" for \""
+                        + a.text + "\" and \"" + b.text + "\"");
+            }
+        }
     }
 }
