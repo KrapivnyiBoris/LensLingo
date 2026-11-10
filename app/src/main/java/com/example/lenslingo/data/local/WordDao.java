@@ -33,4 +33,14 @@ public interface WordDao {
 
     @Query("SELECT COUNT(*) FROM words")
     LiveData<Integer> getTotalWordsCount();
+
+    @Query("SELECT COUNT(*) FROM words")
+    int countAllSync();
+
+    @Query("SELECT COUNT(*) FROM words WHERE repetitionCount >= :min")
+    int countLearnedSync(int min);
+
+    @Query("SELECT sourceLanguage AS language, COUNT(*) AS cnt FROM words "
+            + "GROUP BY sourceLanguage ORDER BY cnt DESC")
+    List<LanguageCount> languageBreakdown();
 }

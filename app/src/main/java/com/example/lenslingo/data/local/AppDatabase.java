@@ -2,16 +2,34 @@ package com.example.lenslingo.data.local;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {WordEntity.class}, version = 1, exportSchema = false)
+@Database(entities = {WordEntity.class, ReviewLogEntity.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase instance;
 
     public abstract WordDao wordDao();
+
+    public abstract ReviewDao reviewDao();
+
+    private static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `review_log` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`wordId` INTEGER NOT NULL, "
+                    + "`reviewedAt` INTEGER NOT NULL, "
+                    + "`quality` INTEGER NOT NULL)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_review_log_reviewedAt` "
+                    + "ON `review_log` (`reviewedAt`)");
+        }
+    };
 
     public static AppDatabase getInstance(Context context) {
         if (instance == null) {
@@ -21,7 +39,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             AppDatabase.class,
                             "lenslingo_database"
-                    ).build();
+                    ).addMigrations(MIGRATION_1_2).build();
                 }
             }
         }

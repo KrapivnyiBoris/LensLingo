@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.lenslingo.data.local.WordEntity;
+import com.example.lenslingo.repository.StatsRepository;
 import com.example.lenslingo.repository.WordRepository;
 import com.example.lenslingo.sm2.SM2Calculator;
 import com.example.lenslingo.sm2.SM2Result;
@@ -24,6 +25,7 @@ public class TrainerViewModel extends AndroidViewModel {
     private final SM2Scheduler scheduler;
     private final SM2Calculator calculator;
     private final ExecutorService executor;
+    private final StatsRepository statsRepository;
 
     private final LinkedList<WordEntity> sessionQueue = new LinkedList<>();
 
@@ -38,6 +40,7 @@ public class TrainerViewModel extends AndroidViewModel {
         scheduler = new SM2Scheduler(repository);
         calculator = new SM2Calculator();
         executor = Executors.newSingleThreadExecutor();
+        statsRepository = new StatsRepository(application);
     }
 
     public LiveData<WordEntity> getCurrentCard() {
@@ -82,6 +85,8 @@ public class TrainerViewModel extends AndroidViewModel {
                 word.repetitionCount,
                 word.intervalDays
         );
+
+        statsRepository.logReview(word.id, quality);
 
         word.easeFactor = result.easeFactor;
         word.repetitionCount = result.repetitionCount;

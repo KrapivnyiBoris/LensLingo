@@ -21,7 +21,15 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class OCRRepository {
+
+    private static final int MAX_ATTEMPTS = 3;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     private static final boolean ENHANCE_EXPERIMENT = false;
     private static final boolean USE_ENHANCED_BOXES = false;
@@ -144,30 +152,83 @@ public class OCRRepository {
 
     private void translateOnline(Bitmap bitmap, OcrResult local, OcrCallback callback) {
         executor.execute(() -> {
-            final long start = SystemClock.elapsedRealtime();
             String base64 = ImageUtils.toBase64(bitmap);
+            requestGemini(base64, local, callback, 1, SystemClock.elapsedRealtime());
+        });
+    }
 
-            remoteDataSource.translateWords(base64, local.words, new RemoteDataSource.TranslationCallback() {
-                @Override
-                public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items) {
-                    OcrLog.d("Gemini finished in " + (SystemClock.elapsedRealtime() - start)
-                            + " ms, items=" + items.size() + ", sent=" + local.words.size());
+    private void requestGemini(String base64, OcrResult local, OcrCallback callback,
+                               int attempt, long start) {
+        remoteDataSource.translateWords(base64, local.words, new RemoteDataSource.TranslationCallback() {
+            @Override
+            public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items) {
+                OcrLog.d("Gemini finished in " + (SystemClock.elapsedRealtime() - start)
+                        + " ms, attempt " + attempt + "/" + MAX_ATTEMPTS
+                        + ", items=" + items.size() + ", sent=" + local.words.size());
 
-                    applyTranslations(local.words, items);
-                    flagSuspects(local.words);
-                    OcrLog.dumpWords("FINAL", local.words);
+                applyTranslations(local.words, items);
+                flagSuspects(local.words);
+                OcrLog.dumpWords("FINAL", local.words);
 
-                    String lang = sourceLanguage != null ? sourceLanguage : "auto";
-                    translationSource.prefetch(lang);
-                    callback.onSuccess(new OcrResult(local.words, lang, true), false);
+                String lang = sourceLanguage != null ? sourceLanguage : "auto";
+                translationSource.prefetch(lang);
+                callback.onSuccess(new OcrResult(local.words, lang, true), false);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                if (attempt < MAX_ATTEMPTS && isRetryable(e)) {
+                    long delay = 1500L * attempt;
+                    OcrLog.d("RETRY " + (attempt + 1) + "/" + MAX_ATTEMPTS + " in " + delay
+                            + " ms, reason: " + shortMessage(e));
+                    scheduler.schedule(
+                            () -> requestGemini(base64, local, callback, attempt + 1, start),
+                            delay, TimeUnit.MILLISECONDS);
+                } else {
+                    OcrLog.d("MODE offline: Gemini failed after " + attempt + " attempt(s): "
+                            + shortMessage(e));
+                    finishOffline(local, callback, true);
                 }
+            }
+        });
+    }
 
-                @Override
-                public void onFailure(Exception e) {
-                    OcrLog.d("MODE offline: Gemini failed: " + e);
-                    finishOffline(local, callback);
-                }
-            });
+    private boolean isRetryable(Exception e) {
+        if (e instanceof SocketTimeoutException || e instanceof UnknownHostException) return false;
+
+        String m = e.getMessage();
+        if (m != null && m.startsWith("Gemini API error ") && m.length() >= 20) {
+            try {
+                int code = Integer.parseInt(m.substring(17, 20));
+                return code == 429 || code >= 500;
+            } catch (NumberFormatException ignored) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String shortMessage(Exception e) {
+        String m = String.valueOf(e);
+        int nl = m.indexOf('\n');
+        return nl > 0 ? m.substring(0, nl) : m;
+    }
+
+    private void finishOffline(OcrResult local, OcrCallback callback) {
+        finishOffline(local, callback, false);
+    }
+
+    private void finishOffline(OcrResult local, OcrCallback callback, boolean onlineFailed) {
+        executor.execute(() -> {
+            long start = SystemClock.elapsedRealtime();
+            LocalTranslationDataSource.Outcome outcome = translationSource.translateWords(local.words);
+            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
+            OcrLog.dumpWords("OFFLINE_FINAL", local.words);
+
+            OcrResult result = new OcrResult(local.words, outcome.language, false);
+            result.notice = outcome.notice != null ? outcome.notice
+                    : (onlineFailed ? "Online translation is busy, offline mode was used" : null);
+            callback.onSuccess(result, true);
         });
     }
 
@@ -268,18 +329,5 @@ public class OCRRepository {
                         + a.text + "\" and \"" + b.text + "\"");
             }
         }
-    }
-
-    private void finishOffline(OcrResult local, OcrCallback callback) {
-        executor.execute(() -> {
-            long start = SystemClock.elapsedRealtime();
-            LocalTranslationDataSource.Outcome outcome = translationSource.translateWords(local.words);
-            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
-            OcrLog.dumpWords("OFFLINE_FINAL", local.words);
-
-            OcrResult result = new OcrResult(local.words, outcome.language, false);
-            result.notice = outcome.notice;
-            callback.onSuccess(result, true);
-        });
     }
 }

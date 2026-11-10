@@ -34,7 +34,7 @@ public class HomeFragment extends Fragment {
                 navigateTo(new DictionaryFragment()));
 
         view.findViewById(R.id.button_stats).setOnClickListener(v ->
-                Toast.makeText(requireContext(), "Stats screen not built yet", Toast.LENGTH_SHORT).show());
+                navigateTo(new com.example.lenslingo.ui.stats.StatsFragment()));
     }
 
     private void navigateTo(Fragment fragment) {
