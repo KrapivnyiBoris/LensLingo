@@ -9,4 +9,21 @@
     <string name="add_test_word">+ Test word (debug)</string>
     <string name="back">Back</string>
     <string name="delete_word">Delete word</string>
+    <string name="training">Training</string>
+    <string name="todays_progress">Today\'s progress</string>
+    <string name="words_left">%d words left</string>
+    <string name="show_answer">Show answer</string>
+    <string name="how_well">How well did you remember?</string>
+    <string name="forgot">Forgot</string>
+    <string name="perfect">Perfect</string>
+    <string name="delete">Delete</string>
+    <string name="delete_confirm_title">Delete this word?</string>
+    <string name="delete_confirm_message">It will be removed from your dictionary together with its progress.</string>
+    <string name="cancel">Cancel</string>
+    <string name="words_learned">learned</string>
+    <string name="day_streak">day streak</string>
+    <string name="languages">languages</string>
+    <string name="reviewed_this_week">Words reviewed this week</string>
+    <string name="by_language">By language</string>
+    <string name="due_now">Due now</string>
 </resources>

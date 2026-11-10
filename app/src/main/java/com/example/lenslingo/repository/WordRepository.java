@@ -73,4 +73,15 @@ public class WordRepository {
             return List.of();
         }
     }
+
+    public void deleteById(int id) {
+        executor.execute(() -> {
+            WordEntity w = wordDao.getByIdSync(id);
+            if (w == null) return;
+            wordDao.delete(w);
+            if (w.photoUri != null && wordDao.countByPhotoSync(w.photoUri) == 0) {
+                PhotoStore.delete(w.photoUri);
+            }
+        });
+    }
 }

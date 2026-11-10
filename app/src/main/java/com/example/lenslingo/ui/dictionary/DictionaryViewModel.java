@@ -50,4 +50,8 @@ public class DictionaryViewModel extends AndroidViewModel {
     public void deleteWord(WordEntity word) {
         repository.delete(word);
     }
+
+    public void deleteWordById(int id) {
+        repository.deleteById(id);
+    }
 }

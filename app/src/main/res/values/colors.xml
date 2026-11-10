@@ -8,4 +8,25 @@
     <color name="ink">#1B2B26</color>
     <color name="ink_secondary">#6B7F78</color>
     <color name="badge_bg">#E8EEEC</color>
+    <color name="green_card">#3A7968</color>
+    <color name="cream">#FFF8E1</color>
+
+    <color name="rate_0">#E5484D</color>
+    <color name="rate_1">#F2703D</color>
+    <color name="rate_2">#F59E0B</color>
+    <color name="rate_3">#E6B800</color>
+    <color name="rate_4">#8BC34A</color>
+    <color name="rate_5">#2EBE6A</color>
+
+    <color name="tile_green_bg">#E3F0EB</color>
+    <color name="tile_orange_bg">#FFF1DB</color>
+    <color name="tile_orange">#F59E0B</color>
+    <color name="tile_blue_bg">#E3EEFF</color>
+    <color name="tile_blue">#3B82F6</color>
+
+    <color name="dot_1">#F5B301</color>
+    <color name="dot_2">#3B82F6</color>
+    <color name="dot_3">#E5484D</color>
+    <color name="dot_4">#2EBE6A</color>
+    <color name="dot_5">#8E24AA</color>
 </resources>

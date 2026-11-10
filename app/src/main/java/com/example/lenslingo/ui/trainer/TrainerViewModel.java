@@ -33,6 +33,7 @@ public class TrainerViewModel extends AndroidViewModel {
     private final MutableLiveData<Integer> remainingCount = new MutableLiveData<>(0);
     private final MutableLiveData<Boolean> sessionFinished = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> noWordsToday = new MutableLiveData<>(false);
+    private final MutableLiveData<Integer> totalCount = new MutableLiveData<>(0);
 
     public TrainerViewModel(@NonNull Application application) {
         super(application);
@@ -41,6 +42,10 @@ public class TrainerViewModel extends AndroidViewModel {
         calculator = new SM2Calculator();
         executor = Executors.newSingleThreadExecutor();
         statsRepository = new StatsRepository(application);
+    }
+
+    public LiveData<Integer> getTotalCount() {
+        return totalCount;
     }
 
     public LiveData<WordEntity> getCurrentCard() {
@@ -70,6 +75,7 @@ public class TrainerViewModel extends AndroidViewModel {
 
             sessionQueue.clear();
             sessionQueue.addAll(dueWords);
+            totalCount.postValue(dueWords.size());
 
             showNextCard();
         });

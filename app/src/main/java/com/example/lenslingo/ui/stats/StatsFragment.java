@@ -22,7 +22,7 @@ import java.util.Locale;
 
 public class StatsFragment extends Fragment {
 
-    // Довге натискання на заголовок додає демо-історію. Вимкніть перед здачею
+    // Довге натискання на заголовок додає демо-історію. Вимкнути перед здачею
     private static final boolean DEBUG_TOOLS = true;
 
     private StatsViewModel viewModel;
@@ -45,7 +45,6 @@ public class StatsFragment extends Fragment {
         TextView learned = view.findViewById(R.id.text_learned);
         TextView streak = view.findViewById(R.id.text_streak);
         TextView languages = view.findViewById(R.id.text_languages);
-        TextView saved = view.findViewById(R.id.text_saved);
         TextView streakMessage = view.findViewById(R.id.text_streak_message);
         WeekBarChartView chart = view.findViewById(R.id.chart_week);
         LinearLayout byLanguage = view.findViewById(R.id.layout_by_language);
@@ -75,7 +74,6 @@ public class StatsFragment extends Fragment {
             learned.setText(String.valueOf(data.learned));
             streak.setText(String.valueOf(data.streak));
             languages.setText(String.valueOf(data.languageCount()));
-            saved.setText("of " + data.total + " saved in your dictionary");
 
             if (data.daysSinceLast == 0) {
                 streakMessage.setText("Great, you have practiced today!");
@@ -90,31 +88,50 @@ public class StatsFragment extends Fragment {
             chart.setData(data.dayLabels, data.dayCounts);
 
             byLanguage.removeAllViews();
-            for (LanguageCount lc : data.languages) {
-                byLanguage.addView(languageRow(lc));
+            for (int i = 0; i < data.languages.size(); i++) {
+                byLanguage.addView(languageRow(data.languages.get(i), i));
             }
         });
 
         viewModel.load();
     }
 
-    private View languageRow(LanguageCount lc) {
+    private static final int[] DOT_COLORS = {
+            R.color.dot_1, R.color.dot_2, R.color.dot_3, R.color.dot_4, R.color.dot_5};
+
+    private View languageRow(LanguageCount lc, int index) {
+        float d = getResources().getDisplayMetrics().density;
+
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
-        int pad = (int) (6 * getResources().getDisplayMetrics().density);
-        row.setPadding(0, pad, 0, pad);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, (int) (8 * d), 0, (int) (8 * d));
+
+        View dot = new View(requireContext());
+        LinearLayout.LayoutParams dotParams =
+                new LinearLayout.LayoutParams((int) (10 * d), (int) (10 * d));
+        dotParams.setMarginEnd((int) (12 * d));
+        dot.setLayoutParams(dotParams);
+        dot.setBackgroundResource(R.drawable.bg_circle);
+        dot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                androidx.core.content.ContextCompat.getColor(
+                        requireContext(), DOT_COLORS[index % DOT_COLORS.length])));
 
         TextView name = new TextView(requireContext());
         name.setLayoutParams(new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         name.setTextSize(15);
+        name.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ink));
         name.setText(languageName(lc.language));
 
         TextView count = new TextView(requireContext());
         count.setGravity(Gravity.END);
         count.setTextSize(15);
+        count.setTypeface(count.getTypeface(), android.graphics.Typeface.BOLD);
+        count.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ink));
         count.setText(String.valueOf(lc.cnt));
 
+        row.addView(dot);
         row.addView(name);
         row.addView(count);
         return row;

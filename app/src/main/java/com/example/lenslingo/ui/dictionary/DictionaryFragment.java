@@ -19,8 +19,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.lenslingo.R;
 
-import java.util.Random;
-
 public class DictionaryFragment extends Fragment {
 
     private DictionaryViewModel viewModel;
@@ -40,7 +38,7 @@ public class DictionaryFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(DictionaryViewModel.class);
 
         RecyclerView recyclerView = view.findViewById(R.id.recycler_words);
-        adapter = new WordAdapter(word -> viewModel.deleteWord(word));
+        adapter = new WordAdapter(this::showDetails);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
@@ -60,6 +58,10 @@ public class DictionaryFragment extends Fragment {
 
         viewModel.getWords().observe(getViewLifecycleOwner(), adapter::submitList);
 
+        getParentFragmentManager().setFragmentResultListener(
+                WordDetailsSheet.RESULT_DELETE, getViewLifecycleOwner(),
+                (key, bundle) -> viewModel.deleteWordById(bundle.getInt(WordDetailsSheet.KEY_ID)));
+
         viewModel.getToastMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null) {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
@@ -77,5 +79,9 @@ public class DictionaryFragment extends Fragment {
 
         view.findViewById(R.id.button_home).setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack());
+    }
+
+    private void showDetails(com.example.lenslingo.data.local.WordEntity word) {
+        WordDetailsSheet.newInstance(word).show(getParentFragmentManager(), "word_details");
     }
 }
