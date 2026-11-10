@@ -39,7 +39,7 @@ public class LocalMLDataSource {
                             float[] lineBox = toBox(line.getBoundingBox(), width, height);
 
                             for (Text.Element element : line.getElements()) {
-                                String text = element.getText().trim();
+                                String text = fixCase(element.getText().trim());
                                 String reason = rejectReason(text, element.getConfidence());
                                 if (reason != null) {
                                     OcrLog.d(String.format(java.util.Locale.US, "DROP \"%s\" reason=%s conf=%.2f",
@@ -94,5 +94,16 @@ public class LocalMLDataSource {
         float[] b = toBox(element.getBoundingBox(), width, height);
         if (b == null) return null;
         return new float[]{b[0], b[1], b[2], b[1], b[2], b[3], b[0], b[3]};
+    }
+
+    private String fixCase(String t) {
+        int n = t.length();
+        if (n < 3) return t;
+        char last = t.charAt(n - 1);
+        if (!Character.isUpperCase(last)) return t;
+        for (int i = 0; i < n - 1; i++) {
+            if (!Character.isLowerCase(t.charAt(i))) return t;
+        }
+        return t.substring(0, n - 1) + Character.toLowerCase(last);
     }
 }

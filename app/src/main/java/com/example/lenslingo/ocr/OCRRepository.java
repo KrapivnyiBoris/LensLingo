@@ -36,7 +36,7 @@ public class OCRRepository {
         appContext = context.getApplicationContext();
         localDataSource = new LocalMLDataSource();
         remoteDataSource = new RemoteDataSource();
-        translationSource = new LocalTranslationDataSource();
+        translationSource = new LocalTranslationDataSource(appContext);
     }
 
     public interface OcrCallback {

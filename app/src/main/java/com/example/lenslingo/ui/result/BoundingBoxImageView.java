@@ -240,16 +240,30 @@ public class BoundingBoxImageView extends View {
         if (bitmap == null) return null;
         computeImageRect();
 
+        final float minHalf = 24 * density;
         OcrWord best = null;
-        float bestArea = Float.MAX_VALUE;
+        float bestScore = Float.MAX_VALUE;
 
         for (OcrWord word : words) {
             if (!fillQuad(word, HIT_SCALE)) continue;
-            if (!pointInQuad(x, y)) continue;
 
-            float area = quadArea();
-            if (area < bestArea) {
-                bestArea = area;
+            float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+            float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+            for (int i = 0; i < 4; i++) {
+                minX = Math.min(minX, quad[i * 2]);
+                maxX = Math.max(maxX, quad[i * 2]);
+                minY = Math.min(minY, quad[i * 2 + 1]);
+                maxY = Math.max(maxY, quad[i * 2 + 1]);
+            }
+            float cx = (minX + maxX) / 2f;
+            float cy = (minY + maxY) / 2f;
+            float halfW = Math.max((maxX - minX) / 2f, minHalf);
+            float halfH = Math.max((maxY - minY) / 2f, minHalf);
+
+            float score = Math.max(Math.abs(x - cx) / halfW, Math.abs(y - cy) / halfH);
+            boolean hit = pointInQuad(x, y) || score <= 1f;
+            if (hit && score < bestScore) {
+                bestScore = score;
                 best = word;
             }
         }
@@ -268,13 +282,5 @@ public class BoundingBoxImageView extends View {
             }
         }
         return inside;
-    }
-
-    private float quadArea() {
-        float sum = 0;
-        for (int i = 0, j = 3; i < 4; j = i++) {
-            sum += quad[j * 2] * quad[i * 2 + 1] - quad[i * 2] * quad[j * 2 + 1];
-        }
-        return Math.abs(sum) / 2f;
     }
 }
