@@ -30,11 +30,13 @@ public class OCRRepository {
     private final LocalMLDataSource localDataSource;
     private final RemoteDataSource remoteDataSource;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final LocalTranslationDataSource translationSource;
 
     public OCRRepository(Context context) {
         appContext = context.getApplicationContext();
         localDataSource = new LocalMLDataSource();
         remoteDataSource = new RemoteDataSource();
+        translationSource = new LocalTranslationDataSource();
     }
 
     public interface OcrCallback {
@@ -94,7 +96,7 @@ public class OCRRepository {
             translateOnline(bitmap, local, callback);
         } else {
             OcrLog.d("MODE offline: no network");
-            callback.onSuccess(local, true);
+            finishOffline(local, callback);
         }
     }
 
@@ -156,13 +158,14 @@ public class OCRRepository {
                     OcrLog.dumpWords("FINAL", local.words);
 
                     String lang = sourceLanguage != null ? sourceLanguage : "auto";
+                    translationSource.prefetch(lang);
                     callback.onSuccess(new OcrResult(local.words, lang, true), false);
                 }
 
                 @Override
                 public void onFailure(Exception e) {
                     OcrLog.d("MODE offline: Gemini failed: " + e);
-                    callback.onSuccess(local, true);
+                    finishOffline(local, callback);
                 }
             });
         });
@@ -265,5 +268,18 @@ public class OCRRepository {
                         + a.text + "\" and \"" + b.text + "\"");
             }
         }
+    }
+
+    private void finishOffline(OcrResult local, OcrCallback callback) {
+        executor.execute(() -> {
+            long start = SystemClock.elapsedRealtime();
+            LocalTranslationDataSource.Outcome outcome = translationSource.translateWords(local.words);
+            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
+            OcrLog.dumpWords("OFFLINE_FINAL", local.words);
+
+            OcrResult result = new OcrResult(local.words, outcome.language, false);
+            result.notice = outcome.notice;
+            callback.onSuccess(result, true);
+        });
     }
 }

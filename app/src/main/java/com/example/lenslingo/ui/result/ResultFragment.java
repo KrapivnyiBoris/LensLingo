@@ -89,6 +89,10 @@ public class ResultFragment extends Fragment {
             languageText.setText("Detected: " + result.sourceLanguage
                     + (result.fromOnlineMode ? " (online)" : " (offline)"));
 
+            if (result.notice != null) {
+                Toast.makeText(requireContext(), result.notice, Toast.LENGTH_LONG).show();
+            }
+
             List<OcrWord> visible = result.visibleWords();
             imageBoxes.setImage(result.image);
             imageBoxes.setWords(visible);

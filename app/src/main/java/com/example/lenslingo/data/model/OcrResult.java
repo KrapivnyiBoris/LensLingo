@@ -12,6 +12,7 @@ public class OcrResult {
 
     public Bitmap image;
     public String imageUri;
+    public String notice;
 
     public OcrResult(List<OcrWord> words, String sourceLanguage, boolean fromOnlineMode) {
         this.words = words;
