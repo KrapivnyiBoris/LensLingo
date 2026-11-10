@@ -5,6 +5,7 @@ import android.app.Application;
 import androidx.lifecycle.LiveData;
 
 import com.example.lenslingo.data.local.AppDatabase;
+import com.example.lenslingo.data.local.PhotoStore;
 import com.example.lenslingo.data.local.WordDao;
 import com.example.lenslingo.data.local.WordEntity;
 
@@ -54,7 +55,12 @@ public class WordRepository {
     }
 
     public void delete(WordEntity word) {
-        executor.execute(() -> wordDao.delete(word));
+        executor.execute(() -> {
+            wordDao.delete(word);
+            if (word.photoUri != null && wordDao.countByPhotoSync(word.photoUri) == 0) {
+                PhotoStore.delete(word.photoUri);
+            }
+        });
     }
 
     public List<WordEntity> getWordsDueForReviewSync() {

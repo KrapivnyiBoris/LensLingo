@@ -58,12 +58,6 @@ public class DictionaryFragment extends Fragment {
             public void afterTextChanged(Editable s) {}
         });
 
-        Button addTestButton = view.findViewById(R.id.button_add_test_word);
-        addTestButton.setOnClickListener(v -> {
-            int n = new Random().nextInt(1000);
-            viewModel.addTestWord("word" + n, "переклад" + n, "en");
-        });
-
         viewModel.getWords().observe(getViewLifecycleOwner(), adapter::submitList);
 
         viewModel.getToastMessage().observe(getViewLifecycleOwner(), message -> {

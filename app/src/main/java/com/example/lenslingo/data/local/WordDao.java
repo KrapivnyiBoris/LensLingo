@@ -43,4 +43,10 @@ public interface WordDao {
     @Query("SELECT sourceLanguage AS language, COUNT(*) AS cnt FROM words "
             + "GROUP BY sourceLanguage ORDER BY cnt DESC")
     List<LanguageCount> languageBreakdown();
+
+    @Query("SELECT COUNT(*) FROM words WHERE photoUri = :uri")
+    int countByPhotoSync(String uri);
+
+    @Query("SELECT * FROM words WHERE id = :id")
+    WordEntity getByIdSync(int id);
 }

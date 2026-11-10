@@ -25,6 +25,7 @@ public class TrainerFragment extends Fragment {
     private TextView statusText;
     private View ratingLayout;
     private Button showAnswerButton;
+    private android.widget.ImageView contextImage;
 
     @Nullable
     @Override
@@ -38,6 +39,7 @@ public class TrainerFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(this).get(TrainerViewModel.class);
+        contextImage = view.findViewById(R.id.image_context);
 
         remainingText = view.findViewById(R.id.text_remaining);
         wordText = view.findViewById(R.id.text_word);
@@ -83,6 +85,13 @@ public class TrainerFragment extends Fragment {
 
         wordText.setText(word.word);
         translationText.setText(word.translation);
+
+        if (word.photoUri != null && word.photoUri.startsWith("file:")) {
+            contextImage.setVisibility(View.VISIBLE);
+            com.example.lenslingo.ui.dictionary.ThumbnailLoader.load(contextImage, word.photoUri);
+        } else {
+            contextImage.setVisibility(View.GONE);
+        }
 
         statusText.setVisibility(View.GONE);
 

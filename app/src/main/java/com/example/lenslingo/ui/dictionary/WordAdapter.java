@@ -37,7 +37,8 @@ public class WordAdapter extends ListAdapter<WordEntity, WordAdapter.WordViewHol
                 public boolean areContentsTheSame(@NonNull WordEntity oldItem, @NonNull WordEntity newItem) {
                     return oldItem.word.equals(newItem.word)
                             && oldItem.translation.equals(newItem.translation)
-                            && oldItem.sourceLanguage.equals(newItem.sourceLanguage);
+                            && oldItem.sourceLanguage.equals(newItem.sourceLanguage)
+                            && java.util.Objects.equals(oldItem.photoUri, newItem.photoUri);
                 }
             };
 
@@ -60,6 +61,7 @@ public class WordAdapter extends ListAdapter<WordEntity, WordAdapter.WordViewHol
         private final TextView translationText;
         private final TextView languageText;
         private final View deleteButton;
+        private final android.widget.ImageView thumb;
 
         WordViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -67,12 +69,15 @@ public class WordAdapter extends ListAdapter<WordEntity, WordAdapter.WordViewHol
             translationText = itemView.findViewById(R.id.text_translation);
             languageText = itemView.findViewById(R.id.text_language);
             deleteButton = itemView.findViewById(R.id.button_delete);
+            thumb = itemView.findViewById(R.id.image_thumb);
         }
 
         void bind(WordEntity word, OnWordDeleteListener listener) {
+            ThumbnailLoader.load(thumb, word.photoUri);
             wordText.setText(word.word);
             translationText.setText(word.translation);
-            languageText.setText(word.sourceLanguage);
+            languageText.setText("auto".equals(word.sourceLanguage)
+                    ? "—" : word.sourceLanguage.toUpperCase(java.util.Locale.ROOT));
             deleteButton.setOnClickListener(v -> listener.onDelete(word));
         }
     }

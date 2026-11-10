@@ -50,18 +50,4 @@ public class DictionaryViewModel extends AndroidViewModel {
     public void deleteWord(WordEntity word) {
         repository.delete(word);
     }
-
-    public void addTestWord(String word, String translation, String lang) {
-        WordEntity entity = new WordEntity();
-        entity.word = word;
-        entity.translation = translation;
-        entity.sourceLanguage = lang;
-        entity.dateAdded = System.currentTimeMillis();
-        entity.nextReviewDate = System.currentTimeMillis();
-
-        repository.insert(entity, saved -> {
-            String message = saved ? "Слово збережено" : "Слово вже є у словнику";
-            toastMessage.postValue(message);
-        });
-    }
 }

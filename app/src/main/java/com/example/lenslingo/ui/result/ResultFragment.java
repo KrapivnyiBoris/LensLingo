@@ -1,6 +1,7 @@
 package com.example.lenslingo.ui.result;
 
 import android.app.AlertDialog;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,11 +29,11 @@ import java.util.List;
 public class ResultFragment extends Fragment {
 
     private ResultViewModel viewModel;
+    private Bitmap currentImage;
     private SharedOcrViewModel sharedViewModel;
     private OcrWordAdapter adapter;
 
     private String currentSourceLanguage;
-    private String currentImageUri;
 
     @Nullable
     @Override
@@ -84,7 +85,7 @@ public class ResultFragment extends Fragment {
             if (result == null) return;
 
             currentSourceLanguage = result.sourceLanguage;
-            currentImageUri = result.imageUri;
+            currentImage = result.image;
 
             languageText.setText("Detected: " + result.sourceLanguage
                     + (result.fromOnlineMode ? " (online)" : " (offline)"));
@@ -112,7 +113,7 @@ public class ResultFragment extends Fragment {
                 .setTitle(word.shownText())
                 .setMessage(word.translation != null ? word.translation : "No translation available")
                 .setPositiveButton("Save", (dialog, which) ->
-                        viewModel.saveWord(word, currentSourceLanguage, currentImageUri))
+                        viewModel.saveWord(word, currentSourceLanguage, currentImage))
                 .setNegativeButton("Close", null)
                 .show();
     }

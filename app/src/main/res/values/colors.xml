@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="green_primary">#2E6B5A</color>
+    <color name="green_dark">#1F4D40</color>
+    <color name="green_light">#3F8470</color>
+    <color name="green_pale">#E3F0EB</color>
+    <color name="ink">#1B2B26</color>
+    <color name="ink_secondary">#6B7F78</color>
+    <color name="badge_bg">#E8EEEC</color>
 </resources>
