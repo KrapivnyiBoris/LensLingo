@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.example.lenslingo.R;
 import com.example.lenslingo.data.local.AppDatabaseHolder;
 import com.example.lenslingo.data.local.PhotoStore;
 import com.example.lenslingo.data.local.WordEntity;
@@ -38,11 +39,11 @@ public class ResultViewModel extends AndroidViewModel {
 
     public void saveWord(OcrWord ocrWord, String sourceLanguage, Bitmap image) {
         if (ocrWord.translation == null || ocrWord.translation.isEmpty()) {
-            saveMessage.postValue("No translation available for this word");
+            saveMessage.postValue(getApplication().getString(R.string.msg_no_translation));
             return;
         }
         if (ocrWord.translation.startsWith("(")) {
-            saveMessage.postValue("This word has no standalone translation");
+            saveMessage.postValue(getApplication().getString(R.string.msg_no_standalone));
             return;
         }
 
@@ -64,7 +65,8 @@ public class ResultViewModel extends AndroidViewModel {
                 if (!saved && storedPhotoUri != null) {
                     cleanupIfUnused();
                 }
-                saveMessage.postValue(saved ? "Word saved" : "Word already in dictionary");
+                saveMessage.postValue(getApplication().getString(
+                        saved ? R.string.msg_word_saved : R.string.msg_word_exists));
             });
         });
     }

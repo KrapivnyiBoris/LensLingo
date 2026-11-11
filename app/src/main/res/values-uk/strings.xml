@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_text">Сканувати текст</string>
+    <string name="my_dictionary">Мій словник</string>
+    <string name="stats">Статистика</string>
+    <string name="search_words">Пошук слів…</string>
+    <string name="start_training">Почати тренування</string>
+    <string name="add_test_word">+ Тестове слово</string>
+    <string name="back">Назад</string>
+    <string name="delete_word">Видалити слово</string>
+
+    <string name="training">Тренування</string>
+    <string name="todays_progress">Прогрес за сьогодні</string>
+    <string name="words_left">Залишилось слів: %d</string>
+    <string name="show_answer">Показати відповідь</string>
+    <string name="how_well">Наскільки добре ви пам\'ятали?</string>
+    <string name="forgot">Забув</string>
+    <string name="perfect">Ідеально</string>
+    <string name="delete">Видалити</string>
+    <string name="delete_confirm_title">Видалити це слово?</string>
+    <string name="delete_confirm_message">Його буде видалено зі словника разом із прогресом.</string>
+    <string name="cancel">Скасувати</string>
+    <string name="words_learned">слів вивчено</string>
+    <string name="day_streak">днів поспіль</string>
+    <string name="languages">мов</string>
+    <string name="reviewed_this_week">Повторено слів цього тижня</string>
+    <string name="by_language">За мовами</string>
+    <string name="due_now">Час повторити</string>
+
+    <string name="results">Результати</string>
+    <string name="tab_image">Фото</string>
+    <string name="tab_text">Текст</string>
+    <string name="original">ОРИГІНАЛ</string>
+    <string name="translation_label">ПЕРЕКЛАД</string>
+    <string name="translation_label_offline">ПЕРЕКЛАД (по словах, офлайн)</string>
+    <string name="save_word">+ Зберегти</string>
+    <string name="point_camera">Наведіть камеру на текст</string>
+    <string name="gallery">Галерея</string>
+    <string name="take_photo">Зробити фото</string>
+    <string name="flip_camera">Змінити камеру</string>
+
+    <string name="settings">Налаштування</string>
+    <string name="interface_language">Мова інтерфейсу</string>
+    <string name="lang_english">English</string>
+    <string name="lang_ukrainian">Українська</string>
+    <string name="translation_note">Слова завжди перекладаються українською.</string>
+
+    <string name="session_complete">Сесію завершено! Чудова робота.</string>
+    <string name="all_reviewed">На сьогодні всі слова повторено!</string>
+    <string name="no_stats">Поки що немає даних. Почніть сканувати слова</string>
+    <string name="of_saved">із %d збережених у словнику</string>
+    <string name="streak_today">Чудово, ви вже практикувались сьогодні!</string>
+    <string name="streak_keep">Тренуйтесь сьогодні, щоб не втратити серію.</string>
+    <string name="streak_resume">Остання активність була %d дн. тому. Відновіть серію сьогодні!</string>
+    <string name="unknown">Невідомо</string>
+    <string name="msg_word_saved">Слово збережено</string>
+    <string name="msg_word_exists">Слово вже є у словнику</string>
+    <string name="msg_no_translation">Для цього слова немає перекладу</string>
+    <string name="msg_no_standalone">Це слово не має самостійного перекладу</string>
+    <string name="msg_text_not_found">Текст не знайдено. Спробуйте інше фото.</string>
+    <string name="msg_read_error">Не вдалося прочитати зображення.</string>
+    <string name="msg_camera_permission">Потрібен дозвіл на камеру</string>
+    <string name="msg_camera_error">Не вдалося запустити камеру</string>
+    <string name="msg_capture_error">Не вдалося зробити фото</string>
+</resources>

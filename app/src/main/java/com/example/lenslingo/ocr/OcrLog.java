@@ -2,6 +2,7 @@ package com.example.lenslingo.ocr;
 
 import android.util.Log;
 
+import com.example.lenslingo.BuildConfig;
 import com.example.lenslingo.data.model.OcrWord;
 
 import java.util.List;
@@ -11,6 +12,7 @@ public final class OcrLog {
 
     private static final String TAG = "LensLingoDebug";
     private static int run = 0;
+    private static final boolean ENABLED = BuildConfig.DEBUG;
 
     private OcrLog() {}
 
@@ -20,13 +22,15 @@ public final class OcrLog {
     }
 
     public static void d(String message) {
-        Log.d(TAG, message);
+        if (ENABLED) Log.d(TAG, message);
     }
 
     public static void raw(String label, String text) {
-        for (int i = 0; i < text.length(); i += 3000) {
-            Log.d(TAG, label + "[" + (i / 3000) + "] "
-                    + text.substring(i, Math.min(text.length(), i + 3000)));
+        if (ENABLED) {
+            for (int i = 0; i < text.length(); i += 3000) {
+                Log.d(TAG, label + "[" + (i / 3000) + "] "
+                        + text.substring(i, Math.min(text.length(), i + 3000)));
+            }
         }
     }
 

@@ -27,6 +27,9 @@ public class HomeFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        view.findViewById(R.id.button_settings).setOnClickListener(v ->
+                navigateTo(new com.example.lenslingo.ui.settings.SettingsFragment()));
+
         view.findViewById(R.id.button_scan_text).setOnClickListener(v ->
                 navigateTo(new CameraFragment()));
 

@@ -71,7 +71,7 @@ public class CameraFragment extends Fragment {
                 new ActivityResultContracts.RequestPermission(),
                 granted -> {
                     if (granted) startCamera();
-                    else Toast.makeText(requireContext(), "Camera permission required", Toast.LENGTH_LONG).show();
+                    else Toast.makeText(requireContext(), getString(R.string.msg_camera_permission), Toast.LENGTH_LONG).show();
                 });
 
         galleryLauncher = registerForActivityResult(
@@ -150,7 +150,7 @@ public class CameraFragment extends Fragment {
                 cameraProvider.bindToLifecycle(this, selector, preview, imageCapture);
 
             } catch (ExecutionException | InterruptedException | CameraInfoUnavailableException e) {
-                Toast.makeText(requireContext(), "Could not start camera", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), getString(R.string.msg_camera_error), Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
@@ -176,7 +176,7 @@ public class CameraFragment extends Fragment {
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
                         requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(), "Failed to capture photo", Toast.LENGTH_SHORT).show());
+                                Toast.makeText(requireContext(), getString(R.string.msg_capture_error), Toast.LENGTH_SHORT).show());
                     }
                 });
     }

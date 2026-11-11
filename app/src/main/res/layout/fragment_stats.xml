@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:padding="32dp"
-            android:text="No data yet. Start scanning words"
+            android:text="@string/no_stats"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:visibility="gone" />

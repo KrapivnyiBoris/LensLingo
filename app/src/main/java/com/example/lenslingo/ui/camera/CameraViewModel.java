@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.example.lenslingo.R;
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.ocr.ImageUtils;
 import com.example.lenslingo.ocr.OCRRepository;
@@ -67,13 +68,13 @@ public class CameraViewModel extends AndroidViewModel {
                     @Override
                     public void onFailure(Exception e) {
                         isProcessing.postValue(false);
-                        errorMessage.postValue("Text not found. Try another photo.");
+                        errorMessage.postValue(getApplication().getString(R.string.msg_text_not_found));
                     }
                 });
 
             } catch (IOException e) {
                 isProcessing.postValue(false);
-                errorMessage.postValue("Could not read image.");
+                errorMessage.postValue(getApplication().getString(R.string.msg_read_error));
             }
         });
     }

@@ -85,14 +85,14 @@ public class TrainerFragment extends Fragment {
         viewModel.getSessionFinished().observe(getViewLifecycleOwner(), finished -> {
             if (finished != null && finished) {
                 progress.setProgressCompat(100, true);
-                showStatus("Session complete! Great job.");
+                showStatus(String.valueOf(R.string.session_complete));
             }
         });
 
         viewModel.getNoWordsToday().observe(getViewLifecycleOwner(), noWords -> {
             if (noWords != null && noWords) {
                 remainingText.setText(getString(R.string.words_left, 0));
-                showStatus("All words reviewed for today!");
+                showStatus(String.valueOf(R.string.all_reviewed));
             }
         });
 

@@ -21,9 +21,7 @@ import com.example.lenslingo.data.model.StatsData;
 import java.util.Locale;
 
 public class StatsFragment extends Fragment {
-
-    // Довге натискання на заголовок додає демо-історію. Вимкнути перед здачею
-    private static final boolean DEBUG_TOOLS = true;
+    private static final boolean DEBUG_TOOLS = false;
 
     private StatsViewModel viewModel;
 
@@ -76,13 +74,13 @@ public class StatsFragment extends Fragment {
             languages.setText(String.valueOf(data.languageCount()));
 
             if (data.daysSinceLast == 0) {
-                streakMessage.setText("Great, you have practiced today!");
+                streakMessage.setText(R.string.streak_today);
             } else if (data.daysSinceLast == 1) {
-                streakMessage.setText("Practice today to keep your streak going.");
+                streakMessage.setText(R.string.streak_keep);
             } else if (data.daysSinceLast > 1) {
-                streakMessage.setText("Last activity was " + data.daysSinceLast
-                        + " days ago. Resume your streak today!");
+                streakMessage.setText(getString(R.string.streak_resume, data.daysSinceLast));
             }
+
             streakMessage.setVisibility(data.daysSinceLast >= 0 ? View.VISIBLE : View.GONE);
 
             chart.setData(data.dayLabels, data.dayCounts);
@@ -138,7 +136,7 @@ public class StatsFragment extends Fragment {
     }
 
     private String languageName(String code) {
-        if (code == null || code.equals("auto")) return "Unknown";
+        if (code == null || code.equals("auto")) return getString(R.string.unknown);
         String name = new Locale(code).getDisplayLanguage(Locale.ENGLISH);
         return name.isEmpty() ? code : name;
     }

@@ -37,4 +37,27 @@
     <string name="gallery">Gallery</string>
     <string name="take_photo">Take photo</string>
     <string name="flip_camera">Switch camera</string>
+    <string name="settings">Settings</string>
+    <string name="interface_language">Interface language</string>
+    <string name="lang_english">English</string>
+    <string name="lang_ukrainian">Українська</string>
+    <string name="translation_note">Words are always translated into Ukrainian.</string>
+
+    <string name="session_complete">Session complete! Great job.</string>
+    <string name="all_reviewed">All words reviewed for today!</string>
+    <string name="no_stats">No data yet. Start scanning words</string>
+    <string name="of_saved">of %d saved in your dictionary</string>
+    <string name="streak_today">Great, you have practiced today!</string>
+    <string name="streak_keep">Practice today to keep your streak going.</string>
+    <string name="streak_resume">Last activity was %d days ago. Resume your streak today!</string>
+    <string name="unknown">Unknown</string>
+    <string name="msg_word_saved">Word saved</string>
+    <string name="msg_word_exists">Word already in dictionary</string>
+    <string name="msg_no_translation">No translation available for this word</string>
+    <string name="msg_no_standalone">This word has no standalone translation</string>
+    <string name="msg_text_not_found">Text not found. Try another photo.</string>
+    <string name="msg_read_error">Could not read image.</string>
+    <string name="msg_camera_permission">Camera permission required</string>
+    <string name="msg_camera_error">Could not start camera</string>
+    <string name="msg_capture_error">Failed to capture photo</string>
 </resources>
