@@ -33,8 +33,9 @@ public class RemoteDataSource {
 
     public RemoteDataSource() {
         client = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(12, TimeUnit.SECONDS)
+                .callTimeout(12, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -44,14 +45,15 @@ public class RemoteDataSource {
         void onFailure(Exception e);
     }
 
-    public void translateWords(String base64Image, List<OcrWord> words, TranslationCallback callback) {
+    public void translateWords(String model, String base64Image, List<OcrWord> words,
+                               TranslationCallback callback) {
         try {
             JSONObject requestJson = buildRequestBody(base64Image, words);
 
             RequestBody body = RequestBody.create(
                     requestJson.toString(), MediaType.parse("application/json"));
 
-            HttpUrl url = HttpUrl.parse(BASE_URL + BuildConfig.GEMINI_MODEL + ":generateContent")
+            HttpUrl url = HttpUrl.parse(BASE_URL + model + ":generateContent")
                     .newBuilder()
                     .addQueryParameter("key", BuildConfig.GEMINI_API_KEY)
                     .build();

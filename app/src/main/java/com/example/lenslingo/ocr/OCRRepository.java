@@ -23,14 +23,10 @@ import java.util.concurrent.Executors;
 
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import com.example.lenslingo.BuildConfig;
 
 public class OCRRepository {
-
-    private static final int MAX_ATTEMPTS = 3;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
     private static final boolean ENHANCE_EXPERIMENT = false;
     private static final boolean USE_ENHANCED_BOXES = false;
 
@@ -39,6 +35,8 @@ public class OCRRepository {
     private final RemoteDataSource remoteDataSource;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final LocalTranslationDataSource translationSource;
+    private static final long ONLINE_BUDGET_MS = 10_000;
+    private final String[] models = BuildConfig.GEMINI_MODELS.split("\\s*,\\s*");
 
     public OCRRepository(Context context) {
         appContext = context.getApplicationContext();
@@ -153,48 +151,67 @@ public class OCRRepository {
     private void translateOnline(Bitmap bitmap, OcrResult local, OcrCallback callback) {
         executor.execute(() -> {
             String base64 = ImageUtils.toBase64(bitmap);
-            requestGemini(base64, local, callback, 1, SystemClock.elapsedRealtime());
+            requestGemini(base64, local, callback, 0, SystemClock.elapsedRealtime());
         });
     }
 
     private void requestGemini(String base64, OcrResult local, OcrCallback callback,
-                               int attempt, long start) {
-        remoteDataSource.translateWords(base64, local.words, new RemoteDataSource.TranslationCallback() {
-            @Override
-            public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items,
-                                  List<GeminiTranslationPayload.Line> lines) {
-                OcrLog.d("Gemini finished in " + (SystemClock.elapsedRealtime() - start)
-                        + " ms, attempt " + attempt + "/" + MAX_ATTEMPTS
-                        + ", items=" + items.size() + ", sent=" + local.words.size());
+                               int modelIndex, long start) {
+        final String model = models[modelIndex];
+        remoteDataSource.translateWords(model, base64, local.words,
+                new RemoteDataSource.TranslationCallback() {
+                    @Override
+                    public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items,
+                                          List<GeminiTranslationPayload.Line> lines) {
+                        OcrLog.d("Gemini ok: model=" + model + ", "
+                                + (SystemClock.elapsedRealtime() - start) + " ms, items=" + items.size()
+                                + ", sent=" + local.words.size());
 
-                applyTranslations(local.words, items);
-                flagSuspects(local.words);
-                OcrLog.dumpWords("FINAL", local.words);
+                        applyTranslations(local.words, items);
+                        flagSuspects(local.words);
+                        OcrLog.dumpWords("FINAL", local.words);
 
-                String lang = sourceLanguage != null ? sourceLanguage : "auto";
-                translationSource.prefetch(lang);
+                        String lang = sourceLanguage != null ? sourceLanguage : "auto";
+                        translationSource.prefetch(lang);
 
-                OcrResult result = new OcrResult(local.words, lang, true);
-                result.lineTranslations = toLineMap(lines);
-                callback.onSuccess(result, false);
+                        OcrResult result = new OcrResult(local.words, lang, true);
+                        result.lineTranslations = toLineMap(lines);
+                        callback.onSuccess(result, false);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        long spent = SystemClock.elapsedRealtime() - start;
+                        boolean next = modelIndex + 1 < models.length
+                                && spent < ONLINE_BUDGET_MS - 3_000
+                                && isRetryable(e);
+                        if (next) {
+                            OcrLog.d("MODEL SWITCH " + model + " -> " + models[modelIndex + 1]
+                                    + " after " + spent + " ms, reason: " + shortMessage(e));
+                            requestGemini(base64, local, callback, modelIndex + 1, start);
+                        } else {
+                            OcrLog.d("MODE offline: Gemini failed after " + spent + " ms ("
+                                    + (modelIndex + 1) + " model(s)): " + shortMessage(e));
+                            finishOffline(local, callback, true);
+                        }
+                    }
+                });
+    }
+
+    private boolean isRetryable(Exception e) {
+        if (e instanceof UnknownHostException) return false;
+        if (e instanceof SocketTimeoutException) return true;
+
+        String m = e.getMessage();
+        if (m != null && m.startsWith("Gemini API error ") && m.length() >= 20) {
+            try {
+                int code = Integer.parseInt(m.substring(17, 20));
+                return code == 404 || code == 429 || code >= 500;
+            } catch (NumberFormatException ignored) {
+                return false;
             }
-
-            @Override
-            public void onFailure(Exception e) {
-                if (attempt < MAX_ATTEMPTS && isRetryable(e)) {
-                    long delay = 1500L * attempt;
-                    OcrLog.d("RETRY " + (attempt + 1) + "/" + MAX_ATTEMPTS + " in " + delay
-                            + " ms, reason: " + shortMessage(e));
-                    scheduler.schedule(
-                            () -> requestGemini(base64, local, callback, attempt + 1, start),
-                            delay, TimeUnit.MILLISECONDS);
-                } else {
-                    OcrLog.d("MODE offline: Gemini failed after " + attempt + " attempt(s): "
-                            + shortMessage(e));
-                    finishOffline(local, callback, true);
-                }
-            }
-        });
+        }
+        return true;
     }
 
     private Map<Integer, String> toLineMap(List<GeminiTranslationPayload.Line> lines) {
@@ -205,21 +222,6 @@ public class OCRRepository {
             }
         }
         return map;
-    }
-
-    private boolean isRetryable(Exception e) {
-        if (e instanceof SocketTimeoutException || e instanceof UnknownHostException) return false;
-
-        String m = e.getMessage();
-        if (m != null && m.startsWith("Gemini API error ") && m.length() >= 20) {
-            try {
-                int code = Integer.parseInt(m.substring(17, 20));
-                return code == 429 || code >= 500;
-            } catch (NumberFormatException ignored) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private String shortMessage(Exception e) {

@@ -62,4 +62,5 @@
     <string name="msg_camera_permission">Потрібен дозвіл на камеру</string>
     <string name="msg_camera_error">Не вдалося запустити камеру</string>
     <string name="msg_capture_error">Не вдалося зробити фото</string>
+    <string name="show_context">Показати фото</string>
 </resources>

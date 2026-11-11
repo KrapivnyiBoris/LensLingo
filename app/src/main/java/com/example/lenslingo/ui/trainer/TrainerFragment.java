@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,7 +13,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.lenslingo.R;
 import com.example.lenslingo.data.local.WordEntity;
-import com.example.lenslingo.ui.dictionary.ThumbnailLoader;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.util.Locale;
@@ -30,9 +28,9 @@ public class TrainerFragment extends Fragment {
     private TextView statusText;
     private View ratingLayout;
     private View wordCard;
-    private View photoCard;
     private View showAnswerButton;
-    private ImageView contextImage;
+    private View contextButton;
+    private String currentPhotoUri;
     private LinearProgressIndicator progress;
     private int total = 0;
 
@@ -56,9 +54,7 @@ public class TrainerFragment extends Fragment {
         statusText = view.findViewById(R.id.text_status);
         ratingLayout = view.findViewById(R.id.layout_rating);
         wordCard = view.findViewById(R.id.card_word);
-        photoCard = view.findViewById(R.id.card_photo);
         showAnswerButton = view.findViewById(R.id.button_show_answer);
-        contextImage = view.findViewById(R.id.image_context);
         progress = view.findViewById(R.id.progress_bar);
 
         view.findViewById(R.id.button_back).setOnClickListener(v ->
@@ -85,14 +81,23 @@ public class TrainerFragment extends Fragment {
         viewModel.getSessionFinished().observe(getViewLifecycleOwner(), finished -> {
             if (finished != null && finished) {
                 progress.setProgressCompat(100, true);
-                showStatus(String.valueOf(R.string.session_complete));
+                showStatus(getString(R.string.session_complete));
             }
         });
 
         viewModel.getNoWordsToday().observe(getViewLifecycleOwner(), noWords -> {
             if (noWords != null && noWords) {
-                remainingText.setText(getString(R.string.words_left, 0));
-                showStatus(String.valueOf(R.string.all_reviewed));
+                progress.setProgressCompat(0, false);
+                remainingText.setText("");
+                showStatus(getString(R.string.all_reviewed));
+            }
+        });
+
+        contextButton = view.findViewById(R.id.button_context);
+        contextButton.setOnClickListener(v -> {
+            if (currentPhotoUri != null) {
+                PhotoSheet.newInstance(currentPhotoUri)
+                        .show(getParentFragmentManager(), "photo");
             }
         });
 
@@ -111,12 +116,10 @@ public class TrainerFragment extends Fragment {
         languageBadge.setText("auto".equals(word.sourceLanguage)
                 ? "—" : word.sourceLanguage.toUpperCase(Locale.ROOT));
 
-        if (word.photoUri != null && word.photoUri.startsWith("file:")) {
-            photoCard.setVisibility(View.VISIBLE);
-            ThumbnailLoader.load(contextImage, word.photoUri);
-        } else {
-            photoCard.setVisibility(View.GONE);
-        }
+        currentPhotoUri = word.photoUri;
+        contextButton.setVisibility(
+                word.photoUri != null && word.photoUri.startsWith("file:")
+                        ? View.VISIBLE : View.GONE);
 
         ratingLayout.setVisibility(View.GONE);
         showAnswerButton.setVisibility(View.VISIBLE);
@@ -130,7 +133,7 @@ public class TrainerFragment extends Fragment {
 
     private void showStatus(String message) {
         wordCard.setVisibility(View.GONE);
-        photoCard.setVisibility(View.GONE);
+        contextButton.setVisibility(View.GONE);
         showAnswerButton.setVisibility(View.GONE);
         ratingLayout.setVisibility(View.GONE);
         statusText.setText(message);

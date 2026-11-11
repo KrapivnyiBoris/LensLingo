@@ -60,4 +60,5 @@
     <string name="msg_camera_permission">Camera permission required</string>
     <string name="msg_camera_error">Could not start camera</string>
     <string name="msg_capture_error">Failed to capture photo</string>
+    <string name="show_context">Show photo</string>
 </resources>

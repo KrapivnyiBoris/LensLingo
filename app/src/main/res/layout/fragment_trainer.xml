@@ -81,22 +81,6 @@
             android:paddingBottom="16dp">
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_photo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                app:cardBackgroundColor="@color/cream"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="0dp">
-                <ImageView
-                    android:id="@+id/image_context"
-                    android:layout_width="match_parent"
-                    android:layout_height="140dp"
-                    android:importantForAccessibility="no"
-                    android:scaleType="centerInside" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_word"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -140,6 +124,18 @@
                         android:textStyle="bold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_context"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/show_context"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                android:visibility="gone" />
+
 
             <TextView
                 android:id="@+id/text_status"
