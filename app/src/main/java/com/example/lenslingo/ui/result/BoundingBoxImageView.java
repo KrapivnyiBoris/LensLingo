@@ -49,6 +49,7 @@ public class BoundingBoxImageView extends View {
     private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint boxPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private float density;
+    private Runnable emptyTapListener;
 
     public BoundingBoxImageView(Context context) {
         super(context);
@@ -173,6 +174,8 @@ public class BoundingBoxImageView extends View {
                     selectedWord = hit;
                     invalidate();
                     if (listener != null) listener.onWordTap(hit);
+                } else if (emptyTapListener != null) {
+                    emptyTapListener.run();
                 }
                 performClick();
                 return true;
@@ -282,5 +285,35 @@ public class BoundingBoxImageView extends View {
             }
         }
         return inside;
+    }
+
+    public void setOnEmptyTapListener(Runnable listener) {
+        this.emptyTapListener = listener;
+    }
+
+    public void setSelectedWord(OcrWord word) {
+        this.selectedWord = word;
+        invalidate();
+    }
+
+    public void clearSelection() {
+        setSelectedWord(null);
+    }
+
+    // Прямокутник слова в координатах цього View, потрібен для позиціювання попапу
+    public RectF getWordRect(OcrWord word) {
+        if (bitmap == null || getWidth() == 0) return null;
+        computeImageRect();
+        if (!fillQuad(word, DRAW_SCALE)) return null;
+
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (int i = 0; i < 4; i++) {
+            minX = Math.min(minX, quad[i * 2]);
+            maxX = Math.max(maxX, quad[i * 2]);
+            minY = Math.min(minY, quad[i * 2 + 1]);
+            maxY = Math.max(maxY, quad[i * 2 + 1]);
+        }
+        return new RectF(minX, minY, maxX, maxY);
     }
 }

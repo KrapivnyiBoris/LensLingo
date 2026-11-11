@@ -39,7 +39,8 @@ public class RemoteDataSource {
     }
 
     public interface TranslationCallback {
-        void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items);
+        void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items,
+                       List<GeminiTranslationPayload.Line> lines);
         void onFailure(Exception e);
     }
 
@@ -175,6 +176,6 @@ public class RemoteDataSource {
                 OcrLog.d("LINE " + line.n + ": " + line.t);
             }
         }
-        callback.onSuccess(payload.sourceLanguage, payload.items);
+        callback.onSuccess(payload.sourceLanguage, payload.items, payload.lines);
     }
 }

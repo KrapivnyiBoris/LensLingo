@@ -26,4 +26,15 @@
     <string name="reviewed_this_week">Words reviewed this week</string>
     <string name="by_language">By language</string>
     <string name="due_now">Due now</string>
+    <string name="results">Results</string>
+    <string name="tab_image">Image</string>
+    <string name="tab_text">Text</string>
+    <string name="original">ORIGINAL</string>
+    <string name="translation_label">TRANSLATION</string>
+    <string name="translation_label_offline">TRANSLATION (word by word, offline)</string>
+    <string name="save_word">+ Save</string>
+    <string name="point_camera">Point camera at text to scan</string>
+    <string name="gallery">Gallery</string>
+    <string name="take_photo">Take photo</string>
+    <string name="flip_camera">Switch camera</string>
 </resources>

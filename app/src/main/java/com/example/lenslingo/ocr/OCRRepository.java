@@ -161,7 +161,8 @@ public class OCRRepository {
                                int attempt, long start) {
         remoteDataSource.translateWords(base64, local.words, new RemoteDataSource.TranslationCallback() {
             @Override
-            public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items) {
+            public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items,
+                                  List<GeminiTranslationPayload.Line> lines) {
                 OcrLog.d("Gemini finished in " + (SystemClock.elapsedRealtime() - start)
                         + " ms, attempt " + attempt + "/" + MAX_ATTEMPTS
                         + ", items=" + items.size() + ", sent=" + local.words.size());
@@ -172,7 +173,10 @@ public class OCRRepository {
 
                 String lang = sourceLanguage != null ? sourceLanguage : "auto";
                 translationSource.prefetch(lang);
-                callback.onSuccess(new OcrResult(local.words, lang, true), false);
+
+                OcrResult result = new OcrResult(local.words, lang, true);
+                result.lineTranslations = toLineMap(lines);
+                callback.onSuccess(result, false);
             }
 
             @Override
@@ -191,6 +195,16 @@ public class OCRRepository {
                 }
             }
         });
+    }
+
+    private Map<Integer, String> toLineMap(List<GeminiTranslationPayload.Line> lines) {
+        Map<Integer, String> map = new HashMap<>();
+        if (lines != null) {
+            for (GeminiTranslationPayload.Line l : lines) {
+                if (l.t != null && !l.t.trim().isEmpty()) map.put(l.n, l.t.trim());
+            }
+        }
+        return map;
     }
 
     private boolean isRetryable(Exception e) {

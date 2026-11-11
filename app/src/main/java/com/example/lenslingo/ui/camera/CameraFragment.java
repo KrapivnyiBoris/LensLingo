@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import androidx.camera.core.CameraInfoUnavailableException;
 
 public class CameraFragment extends Fragment {
 
@@ -47,6 +48,7 @@ public class CameraFragment extends Fragment {
 
     private ActivityResultLauncher<String> permissionLauncher;
     private ActivityResultLauncher<String> galleryLauncher;
+    private boolean useBackCamera = true;
 
     @Nullable
     @Override
@@ -80,9 +82,18 @@ public class CameraFragment extends Fragment {
 
         view.findViewById(R.id.button_capture).setOnClickListener(v -> takePhoto());
         view.findViewById(R.id.button_gallery).setOnClickListener(v -> galleryLauncher.launch("image/*"));
+        view.findViewById(R.id.button_flip).setOnClickListener(v -> {
+            useBackCamera = !useBackCamera;
+            startCamera();
+        });
 
-        viewModel.getIsProcessing().observe(getViewLifecycleOwner(), processing ->
-                progressBar.setVisibility(Boolean.TRUE.equals(processing) ? View.VISIBLE : View.GONE));
+        viewModel.getIsProcessing().observe(getViewLifecycleOwner(), processing -> {
+            boolean busy = Boolean.TRUE.equals(processing);
+            progressBar.setVisibility(busy ? View.VISIBLE : View.GONE);
+            View capture = view.findViewById(R.id.button_capture);
+            capture.setEnabled(!busy);
+            capture.setAlpha(busy ? 0.4f : 1f);
+        });
 
         viewModel.getOcrResult().observe(getViewLifecycleOwner(), result -> {
             if (result != null) {
@@ -128,12 +139,17 @@ public class CameraFragment extends Fragment {
 
                 imageCapture = new ImageCapture.Builder().build();
 
-                CameraSelector selector = CameraSelector.DEFAULT_BACK_CAMERA;
+                CameraSelector selector = useBackCamera
+                        ? CameraSelector.DEFAULT_BACK_CAMERA : CameraSelector.DEFAULT_FRONT_CAMERA;
+                if (!cameraProvider.hasCamera(selector)) {
+                    useBackCamera = true;
+                    selector = CameraSelector.DEFAULT_BACK_CAMERA;
+                }
 
                 cameraProvider.unbindAll();
                 cameraProvider.bindToLifecycle(this, selector, preview, imageCapture);
 
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | CameraInfoUnavailableException e) {
                 Toast.makeText(requireContext(), "Could not start camera", Toast.LENGTH_SHORT).show();
             }
         }, ContextCompat.getMainExecutor(requireContext()));

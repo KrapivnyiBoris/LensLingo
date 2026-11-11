@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class OcrResult {
     public final List<OcrWord> words;
@@ -13,6 +14,7 @@ public class OcrResult {
     public Bitmap image;
     public String imageUri;
     public String notice;
+    public Map<Integer, String> lineTranslations;
 
     public OcrResult(List<OcrWord> words, String sourceLanguage, boolean fromOnlineMode) {
         this.words = words;
