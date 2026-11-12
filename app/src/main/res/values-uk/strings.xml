@@ -63,4 +63,10 @@
     <string name="msg_camera_error">Не вдалося запустити камеру</string>
     <string name="msg_capture_error">Не вдалося зробити фото</string>
     <string name="show_context">Показати фото</string>
+    <string name="notice_lang_unknown">Не вдалося визначити мову тексту, тому офлайн-переклад недоступний.</string>
+    <string name="notice_lang_unsupported">Офлайн-переклад недоступний для мови \"%s\".</string>
+    <string name="notice_download">Офлайн-перекладу потрібне одноразове завантаження мовного пакета. Підключіться до інтернету й спробуйте ще раз.</string>
+    <string name="notice_online_busy">Онлайн-переклад зараз зайнятий, використано офлайн-режим.</string>
+    <string name="notice_no_translation">Для цього тексту не вдалося отримати переклад.</string>
+    <string name="toast_downloading">Завантаження мовного пакета (%s), лише один раз…</string>
 </resources>

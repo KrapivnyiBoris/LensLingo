@@ -35,7 +35,6 @@ public class RemoteDataSource {
         client = new OkHttpClient.Builder()
                 .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(12, TimeUnit.SECONDS)
-                .callTimeout(12, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -45,11 +44,10 @@ public class RemoteDataSource {
         void onFailure(Exception e);
     }
 
-    public void translateWords(String model, String base64Image, List<OcrWord> words,
-                               TranslationCallback callback) {
+    public void translateWords(String model, long timeoutMs, String base64Image,
+                               List<OcrWord> words, TranslationCallback callback) {
         try {
             JSONObject requestJson = buildRequestBody(base64Image, words);
-
             RequestBody body = RequestBody.create(
                     requestJson.toString(), MediaType.parse("application/json"));
 
@@ -60,7 +58,12 @@ public class RemoteDataSource {
 
             Request request = new Request.Builder().url(url).post(body).build();
 
-            client.newCall(request).enqueue(new Callback() {
+            OkHttpClient perCallClient = client.newBuilder()
+                    .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build();
+
+            perCallClient.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     callback.onFailure(e);

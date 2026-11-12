@@ -23,10 +23,13 @@ import java.util.concurrent.Executors;
 
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.concurrent.TimeUnit;
+import com.example.lenslingo.R;
 import com.example.lenslingo.BuildConfig;
 
 public class OCRRepository {
+    private static final int BUDGET_MS = BuildConfig.GEMINI_BUDGET_MS;
+    private static final int ATTEMPT_MS = BuildConfig.GEMINI_ATTEMPT_MS;
+    private static final long MIN_ATTEMPT_MS = 2500;
     private static final boolean ENHANCE_EXPERIMENT = false;
     private static final boolean USE_ENHANCED_BOXES = false;
 
@@ -35,7 +38,6 @@ public class OCRRepository {
     private final RemoteDataSource remoteDataSource;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final LocalTranslationDataSource translationSource;
-    private static final long ONLINE_BUDGET_MS = 10_000;
     private final String[] models = BuildConfig.GEMINI_MODELS.split("\\s*,\\s*");
 
     public OCRRepository(Context context) {
@@ -158,14 +160,20 @@ public class OCRRepository {
     private void requestGemini(String base64, OcrResult local, OcrCallback callback,
                                int modelIndex, long start) {
         final String model = models[modelIndex];
-        remoteDataSource.translateWords(model, base64, local.words,
+        final boolean last = modelIndex == models.length - 1;
+        final long remaining = BUDGET_MS - (SystemClock.elapsedRealtime() - start);
+        final long timeout = Math.max(1000, last ? remaining : Math.min(ATTEMPT_MS, remaining));
+        final String config = models.length + " models, budget " + BUDGET_MS + "/" + ATTEMPT_MS;
+
+        remoteDataSource.translateWords(model, timeout, base64, local.words,
                 new RemoteDataSource.TranslationCallback() {
                     @Override
                     public void onSuccess(String sourceLanguage, List<GeminiTranslationPayload.Item> items,
                                           List<GeminiTranslationPayload.Line> lines) {
-                        OcrLog.d("Gemini ok: model=" + model + ", "
-                                + (SystemClock.elapsedRealtime() - start) + " ms, items=" + items.size()
-                                + ", sent=" + local.words.size());
+                        long total = SystemClock.elapsedRealtime() - start;
+                        OcrLog.d("ONLINE_RESULT ok model=" + model + " attempt=" + (modelIndex + 1)
+                                + "/" + models.length + " total_ms=" + total + " cfg=[" + config + "]"
+                                + " items=" + items.size() + " sent=" + local.words.size());
 
                         applyTranslations(local.words, items);
                         flagSuspects(local.words);
@@ -182,16 +190,15 @@ public class OCRRepository {
                     @Override
                     public void onFailure(Exception e) {
                         long spent = SystemClock.elapsedRealtime() - start;
-                        boolean next = modelIndex + 1 < models.length
-                                && spent < ONLINE_BUDGET_MS - 3_000
-                                && isRetryable(e);
+                        boolean next = !last && BUDGET_MS - spent >= MIN_ATTEMPT_MS && isRetryable(e);
                         if (next) {
                             OcrLog.d("MODEL SWITCH " + model + " -> " + models[modelIndex + 1]
                                     + " after " + spent + " ms, reason: " + shortMessage(e));
                             requestGemini(base64, local, callback, modelIndex + 1, start);
                         } else {
-                            OcrLog.d("MODE offline: Gemini failed after " + spent + " ms ("
-                                    + (modelIndex + 1) + " model(s)): " + shortMessage(e));
+                            OcrLog.d("ONLINE_RESULT fail model=" + model + " attempt=" + (modelIndex + 1)
+                                    + "/" + models.length + " total_ms=" + spent + " cfg=[" + config + "]"
+                                    + " reason: " + shortMessage(e));
                             finishOffline(local, callback, true);
                         }
                     }
@@ -241,9 +248,16 @@ public class OCRRepository {
             OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
             OcrLog.dumpWords("OFFLINE_FINAL", local.words);
 
+            boolean any = false;
+            for (OcrWord w : local.words) {
+                if (w.translation != null) { any = true; break; }
+            }
+            String notice = outcome.notice;
+            if (notice == null && !any) notice = appContext.getString(R.string.notice_no_translation);
+            if (notice == null && onlineFailed) notice = appContext.getString(R.string.notice_online_busy);
+
             OcrResult result = new OcrResult(local.words, outcome.language, false);
-            result.notice = outcome.notice != null ? outcome.notice
-                    : (onlineFailed ? "Online translation is busy, offline mode was used" : null);
+            result.notice = notice;
             callback.onSuccess(result, true);
         });
     }

@@ -74,6 +74,7 @@ public class ResultFragment extends Fragment {
         imageTab = view.findViewById(R.id.layout_image_tab);
         textTab = view.findViewById(R.id.layout_text_tab);
         TextView languageText = view.findViewById(R.id.text_source_language);
+        TextView notice = view.findViewById(R.id.text_notice);
 
         view.findViewById(R.id.button_back).setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack(
@@ -108,7 +109,10 @@ public class ResultFragment extends Fragment {
             languageText.setText(result.sourceLanguage.toUpperCase(Locale.ROOT)
                     + (result.fromOnlineMode ? " · online" : " · offline"));
             if (result.notice != null) {
-                Toast.makeText(requireContext(), result.notice, Toast.LENGTH_LONG).show();
+                notice.setText(result.notice);
+                notice.setVisibility(View.VISIBLE);
+            } else {
+                notice.setVisibility(View.GONE);
             }
 
             List<OcrWord> visible = result.visibleWords();

@@ -13,8 +13,15 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class LocalMLDataSource {
+
+    private static final String SPLIT_REGEX =
+            "(?<=[,;:!?])(?=\\p{L})|(?<=\\p{Ll}\\.)(?=\\p{Lu})";
+    private static final float MIN_CONFIDENCE = 0.40f;
+    private static final String WORD_PATTERN =
+            "^[\\p{Ps}\\p{Pi}\"']*\\p{L}+(?:['’\\-]\\p{L}+)*\\p{P}*$";
 
     private final TextRecognizer recognizer =
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
@@ -39,21 +46,35 @@ public class LocalMLDataSource {
                             float[] lineBox = toBox(line.getBoundingBox(), width, height);
 
                             for (Text.Element element : line.getElements()) {
-                                String text = fixCase(element.getText().trim());
-                                String reason = rejectReason(text, element.getConfidence());
-                                if (reason != null) {
-                                    OcrLog.d(String.format(java.util.Locale.US, "DROP \"%s\" reason=%s conf=%.2f",
-                                            text, reason, element.getConfidence()));
-                                    continue;
-                                }
-
                                 float[] corners = toCorners(element, width, height);
                                 if (corners == null) continue;
 
-                                OcrWord word = new OcrWord(text, null, corners,
-                                        element.getConfidence(), lineIndex);
-                                word.lineBox = lineBox;
-                                words.add(word);
+                                String raw = element.getText().trim();
+                                String[] parts = raw.split(SPLIT_REGEX);
+                                int total = Math.max(1, raw.length());
+                                int offset = 0;
+
+                                for (String part : parts) {
+                                    float t0 = offset / (float) total;
+                                    offset += part.length();
+                                    float t1 = offset / (float) total;
+
+                                    String text = fixCase(part.trim());
+                                    String reason = rejectReason(text, element.getConfidence());
+                                    if (reason != null) {
+                                        OcrLog.d(String.format(Locale.US,
+                                                "DROP \"%s\" reason=%s conf=%.2f",
+                                                text, reason, element.getConfidence()));
+                                        continue;
+                                    }
+
+                                    float[] c = parts.length == 1
+                                            ? corners : sliceCorners(corners, t0, t1);
+                                    OcrWord word = new OcrWord(text, null, c,
+                                            element.getConfidence(), lineIndex);
+                                    word.lineBox = lineBox;
+                                    words.add(word);
+                                }
                             }
                         }
                     }
@@ -63,9 +84,18 @@ public class LocalMLDataSource {
                 .addOnFailureListener(callback::onFailure);
     }
 
-    private static final float MIN_CONFIDENCE = 0.40f;
-    private static final String WORD_PATTERN =
-            "^[\\p{Ps}\\p{Pi}\"']*\\p{L}+(?:['’\\-]\\p{L}+)*\\p{P}*$";
+    // Вирізає частину рамки між частками t0..t1 уздовж слова
+    private float[] sliceCorners(float[] c, float t0, float t1) {
+        return new float[]{
+                lerp(c[0], c[2], t0), lerp(c[1], c[3], t0),
+                lerp(c[0], c[2], t1), lerp(c[1], c[3], t1),
+                lerp(c[6], c[4], t1), lerp(c[7], c[5], t1),
+                lerp(c[6], c[4], t0), lerp(c[7], c[5], t0)};
+    }
+
+    private float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
 
     private String rejectReason(String text, float confidence) {
         if (text.length() < 2) return "short";

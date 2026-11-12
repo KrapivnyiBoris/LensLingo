@@ -5,11 +5,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
 
+import com.example.lenslingo.R;
 import com.example.lenslingo.data.model.OcrWord;
 import com.google.android.gms.tasks.Tasks;
 import com.google.mlkit.common.model.DownloadConditions;
 import com.google.mlkit.common.model.RemoteModelManager;
 import com.google.mlkit.nl.languageid.LanguageIdentification;
+import com.google.mlkit.nl.languageid.LanguageIdentificationOptions;
 import com.google.mlkit.nl.languageid.LanguageIdentifier;
 import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.nl.translate.TranslateRemoteModel;
@@ -30,6 +32,8 @@ public class LocalTranslationDataSource {
     public static final Set<String> SUPPORTED =
             new HashSet<>(Arrays.asList("en", "es", "de", "fr", "it"));
 
+    private static final float LANG_MIN_WORD_CONFIDENCE = 0.6f;
+
     public static class Outcome {
         public String language = "auto";
         public String notice;
@@ -37,7 +41,8 @@ public class LocalTranslationDataSource {
 
     private final Context appContext;
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final LanguageIdentifier identifier = LanguageIdentification.getClient();
+    private final LanguageIdentifier identifier = LanguageIdentification.getClient(
+            new LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.3f).build());
 
     public LocalTranslationDataSource(Context context) {
         this.appContext = context.getApplicationContext();
@@ -47,24 +52,37 @@ public class LocalTranslationDataSource {
         main.post(() -> Toast.makeText(appContext, message, Toast.LENGTH_LONG).show());
     }
 
+    // Лише впевнені слова з латинськими літерами; якщо таких нема, усі слова
+    private String textForLanguageDetection(List<OcrWord> words) {
+        StringBuilder sb = new StringBuilder();
+        for (OcrWord w : words) {
+            if (w.confidence >= LANG_MIN_WORD_CONFIDENCE && w.text.length() >= 3
+                    && w.text.matches("[\\p{IsLatin}'’\\-.,!?()]+")) {
+                sb.append(w.text).append(' ');
+            }
+        }
+        if (sb.length() == 0) {
+            for (OcrWord w : words) sb.append(w.text).append(' ');
+        }
+        return sb.toString();
+    }
+
     // Блокуючий метод: викликати лише з фонового потоку
     public Outcome translateWords(List<OcrWord> words) {
         Outcome out = new Outcome();
 
-        StringBuilder text = new StringBuilder();
-        for (OcrWord w : words) text.append(w.text).append(' ');
-
         String lang;
         try {
-            lang = Tasks.await(identifier.identifyLanguage(text.toString()));
+            lang = Tasks.await(identifier.identifyLanguage(textForLanguageDetection(words)));
         } catch (Exception e) {
             OcrLog.d("LangID failed: " + e);
-            out.notice = "Could not detect the language";
+            out.notice = appContext.getString(R.string.notice_lang_unknown);
             return out;
         }
 
         if ("und".equals(lang)) {
-            out.notice = "Could not detect the language";
+            OcrLog.d("LangID: undetermined");
+            out.notice = appContext.getString(R.string.notice_lang_unknown);
             return out;
         }
         out.language = lang;
@@ -72,7 +90,7 @@ public class LocalTranslationDataSource {
 
         String source = TranslateLanguage.fromLanguageTag(lang);
         if (!SUPPORTED.contains(lang) || source == null) {
-            out.notice = "Offline translation is not available for \"" + lang + "\"";
+            out.notice = appContext.getString(R.string.notice_lang_unsupported, lang);
             return out;
         }
 
@@ -83,7 +101,7 @@ public class LocalTranslationDataSource {
         } catch (Exception ignored) {
         }
         if (!downloaded) {
-            toast("Downloading the language pack (" + lang + "), one time only…");
+            toast(appContext.getString(R.string.toast_downloading, lang));
         }
 
         Translator translator = Translation.getClient(new TranslatorOptions.Builder()
@@ -97,7 +115,7 @@ public class LocalTranslationDataSource {
             OcrLog.d("Translate model ready in " + (System.currentTimeMillis() - t0) + " ms");
         } catch (Exception e) {
             OcrLog.d("Translate model unavailable: " + e);
-            out.notice = "Offline translation needs a one-time download. Connect to the internet and try again.";
+            out.notice = appContext.getString(R.string.notice_download);
             translator.close();
             return out;
         }

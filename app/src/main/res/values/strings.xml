@@ -61,4 +61,10 @@
     <string name="msg_camera_error">Could not start camera</string>
     <string name="msg_capture_error">Failed to capture photo</string>
     <string name="show_context">Show photo</string>
+    <string name="notice_lang_unknown">Could not detect the language of the text, so offline translation is unavailable.</string>
+    <string name="notice_lang_unsupported">Offline translation is not available for language \"%s\".</string>
+    <string name="notice_download">Offline translation needs a one-time language pack download. Connect to the internet and try again.</string>
+    <string name="notice_online_busy">Online translation is busy, offline mode was used.</string>
+    <string name="notice_no_translation">No translations were produced for this text.</string>
+    <string name="toast_downloading">Downloading the language pack (%s), one time only…</string>
 </resources>

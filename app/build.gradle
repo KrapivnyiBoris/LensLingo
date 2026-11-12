@@ -42,6 +42,8 @@ android {
     defaultConfig {
         buildConfigField "String", "GEMINI_API_KEY", "\"${localProperties.getProperty('GEMINI_API_KEY', '')}\""
         buildConfigField "String", "GEMINI_MODELS", "\"${localProperties.getProperty('GEMINI_MODELS', localProperties.getProperty('GEMINI_MODEL', 'gemini-3.1-flash-lite'))}\""
+        buildConfigField "int", "GEMINI_BUDGET_MS", localProperties.getProperty('GEMINI_BUDGET_MS', '12000')
+        buildConfigField "int", "GEMINI_ATTEMPT_MS", localProperties.getProperty('GEMINI_ATTEMPT_MS', '6000')
     }
 }
 
