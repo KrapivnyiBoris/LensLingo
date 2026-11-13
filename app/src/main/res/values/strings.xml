@@ -31,7 +31,6 @@
     <string name="tab_text">Text</string>
     <string name="original">ORIGINAL</string>
     <string name="translation_label">TRANSLATION</string>
-    <string name="translation_label_offline">TRANSLATION (word by word, offline)</string>
     <string name="save_word">+ Save</string>
     <string name="point_camera">Point camera at text to scan</string>
     <string name="gallery">Gallery</string>
@@ -67,4 +66,5 @@
     <string name="notice_online_busy">Online translation is busy, offline mode was used.</string>
     <string name="notice_no_translation">No translations were produced for this text.</string>
     <string name="toast_downloading">Downloading the language pack (%s), one time only…</string>
+    <string name="translation_label_offline">TRANSLATION (offline)</string>
 </resources>

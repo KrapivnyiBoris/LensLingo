@@ -22,6 +22,7 @@ import com.google.mlkit.nl.translate.TranslatorOptions;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,6 +38,7 @@ public class LocalTranslationDataSource {
     public static class Outcome {
         public String language = "auto";
         public String notice;
+        public Map<Integer, String> lines = new HashMap<>();
     }
 
     private final Context appContext;
@@ -68,7 +70,7 @@ public class LocalTranslationDataSource {
     }
 
     // Блокуючий метод: викликати лише з фонового потоку
-    public Outcome translateWords(List<OcrWord> words) {
+    public Outcome translateWords(List<OcrWord> words, List<OcrWord> contextWords) {
         Outcome out = new Outcome();
 
         String lang;
@@ -135,7 +137,7 @@ public class LocalTranslationDataSource {
             String translated = cache.get(key);
             if (translated == null) {
                 try {
-                    translated = tidy(Tasks.await(translator.translate(clean)), clean);
+                    translated = tidy(Tasks.await(translator.translate(normalizeCaps(clean))), clean);
                 } catch (Exception e) {
                     translated = "";
                 }
@@ -147,15 +149,72 @@ public class LocalTranslationDataSource {
             w.highlight = useful;
         }
 
+        List<OcrWord> sources = contextWords != null && !contextWords.isEmpty() ? contextWords : words;
+        Map<Integer, StringBuilder> lineTexts = new LinkedHashMap<>();
+        for (OcrWord w : sources) {
+            String clean = w.text.replaceAll("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$", "");
+            if (clean.isEmpty()) continue;
+            lineTexts.computeIfAbsent(w.lineIndex, k -> new StringBuilder())
+                    .append(clean).append(' ');
+        }
+        for (Map.Entry<Integer, StringBuilder> e : lineTexts.entrySet()) {
+            String text = e.getValue().toString().trim();
+            if (text.split("\\s+").length < 2) continue;
+            try {
+                String translated = tidy(Tasks.await(translator.translate(normalizeLine(text))), text);
+                if (!translated.isEmpty() && !translated.equalsIgnoreCase(text)) {
+                    out.lines.put(e.getKey(), translated);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        for (Map.Entry<Integer, String> e : out.lines.entrySet()) {
+            int line = e.getKey();
+
+            int tokens = 0;
+            for (OcrWord w : sources) if (w.lineIndex == line) tokens++;
+            if (tokens != 2) continue;
+
+            OcrWord article = null;
+            OcrWord noun = null;
+            for (OcrWord w : words) {
+                if (w.lineIndex != line) continue;
+                if ("(артикль)".equals(w.translation)) article = w;
+                else noun = w;
+            }
+            if (article == null || noun == null) continue;
+
+            String lineTranslation = e.getValue();
+            if (lineTranslation.equalsIgnoreCase(noun.text)) continue;
+
+            noun.translation = lineTranslation;
+            noun.highlight = true;
+        }
+
         translator.close();
         return out;
+    }
+
+    private static boolean isAllCaps(String s) {
+        return s.equals(s.toUpperCase(Locale.ROOT)) && !s.equals(s.toLowerCase(Locale.ROOT));
+    }
+
+    private static String normalizeCaps(String word) {
+        return word.length() >= 4 && isAllCaps(word) ? word.toLowerCase(Locale.ROOT) : word;
+    }
+
+    private static String normalizeLine(String line) {
+        if (!isAllCaps(line)) return line;
+        String lower = line.toLowerCase(Locale.ROOT);
+        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
     }
 
     private String tidy(String raw, String source) {
         String t = raw.trim().replaceAll("[\\p{P}&&[^()]]+$", "").trim();
         if (t.isEmpty()) return "";
         if (t.matches("[\\p{N}\\p{P}\\s]*") && !source.matches(".*\\p{N}.*")) return "";
-        if (!source.isEmpty() && Character.isLowerCase(source.charAt(0))) {
+        if (!source.isEmpty() && (Character.isLowerCase(source.charAt(0)) || isAllCaps(source))) {
             t = Character.toLowerCase(t.charAt(0)) + t.substring(1);
         }
         return t;

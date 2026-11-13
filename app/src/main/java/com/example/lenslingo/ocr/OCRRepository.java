@@ -183,7 +183,7 @@ public class OCRRepository {
                         translationSource.prefetch(lang);
 
                         OcrResult result = new OcrResult(local.words, lang, true);
-                        result.lineTranslations = toLineMap(lines);
+                        result.lineTranslations = toLineMap(lines, local.words);
                         callback.onSuccess(result, false);
                     }
 
@@ -221,14 +221,25 @@ public class OCRRepository {
         return true;
     }
 
-    private Map<Integer, String> toLineMap(List<GeminiTranslationPayload.Line> lines) {
+    private Map<Integer, String> toLineMap(List<GeminiTranslationPayload.Line> lines,
+                                           List<OcrWord> words) {
         Map<Integer, String> map = new HashMap<>();
-        if (lines != null) {
-            for (GeminiTranslationPayload.Line l : lines) {
-                if (l.t != null && !l.t.trim().isEmpty()) map.put(l.n, l.t.trim());
-            }
+        if (lines == null) return map;
+        for (GeminiTranslationPayload.Line l : lines) {
+            if (l.t == null || l.t.trim().isEmpty()) continue;
+            String original = originalOfLine(words, l.n);
+            if (norm(l.t).equals(norm(original))) continue; // повернув оригінал: це не переклад
+            map.put(l.n, l.t.trim());
         }
         return map;
+    }
+
+    private String originalOfLine(List<OcrWord> words, int line) {
+        StringBuilder sb = new StringBuilder();
+        for (OcrWord w : words) {
+            if (w.lineIndex == line) sb.append(w.shownText()).append(' ');
+        }
+        return sb.toString();
     }
 
     private String shortMessage(Exception e) {
@@ -244,9 +255,12 @@ public class OCRRepository {
     private void finishOffline(OcrResult local, OcrCallback callback, boolean onlineFailed) {
         executor.execute(() -> {
             long start = SystemClock.elapsedRealtime();
-            LocalTranslationDataSource.Outcome outcome = translationSource.translateWords(local.words);
-            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
+            LocalTranslationDataSource.Outcome outcome =
+                    translationSource.translateWords(local.words, local.contextWords);            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
             OcrLog.dumpWords("OFFLINE_FINAL", local.words);
+            for (Map.Entry<Integer, String> e : outcome.lines.entrySet()) {
+                OcrLog.d("OFFLINE_LINE " + e.getKey() + ": " + e.getValue());
+            }
 
             boolean any = false;
             for (OcrWord w : local.words) {
@@ -257,6 +271,7 @@ public class OCRRepository {
             if (notice == null && onlineFailed) notice = appContext.getString(R.string.notice_online_busy);
 
             OcrResult result = new OcrResult(local.words, outcome.language, false);
+            result.lineTranslations = outcome.lines;
             result.notice = notice;
             callback.onSuccess(result, true);
         });

@@ -32,7 +32,6 @@
     <string name="tab_text">Текст</string>
     <string name="original">ОРИГІНАЛ</string>
     <string name="translation_label">ПЕРЕКЛАД</string>
-    <string name="translation_label_offline">ПЕРЕКЛАД (по словах, офлайн)</string>
     <string name="save_word">+ Зберегти</string>
     <string name="point_camera">Наведіть камеру на текст</string>
     <string name="gallery">Галерея</string>
@@ -69,4 +68,5 @@
     <string name="notice_online_busy">Онлайн-переклад зараз зайнятий, використано офлайн-режим.</string>
     <string name="notice_no_translation">Для цього тексту не вдалося отримати переклад.</string>
     <string name="toast_downloading">Завантаження мовного пакета (%s), лише один раз…</string>
+    <string name="translation_label_offline">ПЕРЕКЛАД (офлайн)</string>
 </resources>

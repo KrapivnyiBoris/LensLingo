@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class LocalMLDataSource {
+    private static final float CONTEXT_MIN_CONFIDENCE = 0.6f;
 
     private static final String SPLIT_REGEX =
             "(?<=[,;:!?])(?=\\p{L})|(?<=\\p{Ll}\\.)(?=\\p{Lu})";
@@ -38,6 +39,7 @@ public class LocalMLDataSource {
         recognizer.process(image)
                 .addOnSuccessListener(visionText -> {
                     List<OcrWord> words = new ArrayList<>();
+                    List<OcrWord> contextWords = new ArrayList<>();
                     int lineIndex = 0;
 
                     for (Text.TextBlock block : visionText.getTextBlocks()) {
@@ -60,26 +62,33 @@ public class LocalMLDataSource {
                                     float t1 = offset / (float) total;
 
                                     String text = fixCase(part.trim());
+                                    float[] c = parts.length == 1 ? corners : sliceCorners(corners, t0, t1);
                                     String reason = rejectReason(text, element.getConfidence());
-                                    if (reason != null) {
-                                        OcrLog.d(String.format(Locale.US,
-                                                "DROP \"%s\" reason=%s conf=%.2f",
-                                                text, reason, element.getConfidence()));
+
+                                    if (reason == null) {
+                                        OcrWord word = new OcrWord(text, null, c, element.getConfidence(), lineIndex);
+                                        word.lineBox = lineBox;
+                                        words.add(word);
+                                        contextWords.add(word);
                                         continue;
                                     }
 
-                                    float[] c = parts.length == 1
-                                            ? corners : sliceCorners(corners, t0, t1);
-                                    OcrWord word = new OcrWord(text, null, c,
-                                            element.getConfidence(), lineIndex);
-                                    word.lineBox = lineBox;
-                                    words.add(word);
+                                    boolean keepForContext = "short".equals(reason)
+                                            && element.getConfidence() >= CONTEXT_MIN_CONFIDENCE
+                                            && text.matches(WORD_PATTERN);
+                                    if (keepForContext) {
+                                        contextWords.add(new OcrWord(text, null, c, element.getConfidence(), lineIndex));
+                                    }
+                                    OcrLog.d(String.format(Locale.US, "%s \"%s\" reason=%s conf=%.2f",
+                                            keepForContext ? "CONTEXT" : "DROP", text, reason, element.getConfidence()));
                                 }
                             }
                         }
                     }
 
-                    callback.onSuccess(new OcrResult(words, "auto", false));
+                    OcrResult parsed = new OcrResult(words, "auto", false);
+                    parsed.contextWords = contextWords;
+                    callback.onSuccess(parsed);
                 })
                 .addOnFailureListener(callback::onFailure);
     }

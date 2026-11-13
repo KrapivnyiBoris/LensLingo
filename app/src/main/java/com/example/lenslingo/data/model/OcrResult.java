@@ -15,6 +15,7 @@ public class OcrResult {
     public String imageUri;
     public String notice;
     public Map<Integer, String> lineTranslations;
+    public List<OcrWord> contextWords;
 
     public OcrResult(List<OcrWord> words, String sourceLanguage, boolean fromOnlineMode) {
         this.words = words;

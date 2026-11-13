@@ -175,10 +175,9 @@ public class ResultFragment extends Fragment {
         for (Map.Entry<Integer, StringBuilder> e : original.entrySet()) {
             appendLine(originalText, e.getValue().toString());
 
-            String translated;
-            if (result.lineTranslations != null) {
-                translated = result.lineTranslations.get(e.getKey());
-            } else {
+            String translated = result.lineTranslations != null
+                    ? result.lineTranslations.get(e.getKey()) : null;
+            if (translated == null || translated.isEmpty()) {
                 translated = joinWordTranslations(result.words, e.getKey());
             }
             if (translated != null && !translated.isEmpty()) appendLine(translatedText, translated);
@@ -187,7 +186,7 @@ public class ResultFragment extends Fragment {
         ((TextView) root.findViewById(R.id.text_original)).setText(originalText);
         ((TextView) root.findViewById(R.id.text_translation_full)).setText(translatedText);
         ((TextView) root.findViewById(R.id.text_translation_label)).setText(
-                result.lineTranslations != null
+                result.fromOnlineMode
                         ? R.string.translation_label : R.string.translation_label_offline);
     }
 
