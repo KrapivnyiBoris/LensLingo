@@ -9,9 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -190,5 +188,82 @@ public class RemoteDataSource {
             }
         }
         callback.onSuccess(payload.sourceLanguage, payload.items, payload.lines);
+    }
+
+    public interface SuggestionCallback {
+        void onSuccess(List<String> variants);
+        void onFailure(Exception e);
+    }
+
+    public void suggest(String model, long timeoutMs, String word, String languageName,
+                        SuggestionCallback callback) {
+        try {
+            String safe = word.replace("\"", " ").trim();
+            String prompt = "Give up to 4 different Ukrainian translations of the "
+                    + languageName + " word \"" + safe + "\". Put the most common meaning first "
+                    + "and list distinct meanings, not inflected forms of the same one. "
+                    + "Lowercase, no punctuation, no explanations. Return ONLY a JSON array "
+                    + "of strings, for example [\"щось\",\"дещо\"].";
+
+            JSONObject content = new JSONObject().put("parts",
+                    new JSONArray().put(new JSONObject().put("text", prompt)));
+            JSONObject cfg = new JSONObject()
+                    .put("temperature", 0)
+                    .put("responseMimeType", "application/json");
+            JSONObject body = new JSONObject()
+                    .put("contents", new JSONArray().put(content))
+                    .put("generationConfig", cfg);
+
+            HttpUrl url = HttpUrl.parse(BASE_URL + model + ":generateContent")
+                    .newBuilder()
+                    .addQueryParameter("key", BuildConfig.GEMINI_API_KEY)
+                    .build();
+            Request request = new Request.Builder().url(url)
+                    .post(RequestBody.create(body.toString(), MediaType.parse("application/json")))
+                    .build();
+
+            client.newBuilder()
+                    .callTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build()
+                    .newCall(request).enqueue(new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            callback.onFailure(e);
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            String raw = response.body() != null ? response.body().string() : null;
+                            if (!response.isSuccessful() || raw == null) {
+                                callback.onFailure(new IOException("Gemini API error " + response.code()));
+                                return;
+                            }
+                            try {
+                                JSONArray parts = new JSONObject(raw).getJSONArray("candidates")
+                                        .getJSONObject(0).getJSONObject("content").getJSONArray("parts");
+                                StringBuilder text = new StringBuilder();
+                                for (int i = 0; i < parts.length(); i++) {
+                                    JSONObject p = parts.getJSONObject(i);
+                                    if (!p.optBoolean("thought", false)) text.append(p.optString("text", ""));
+                                }
+                                String clean = text.toString().trim()
+                                        .replaceAll("^```json", "").replaceAll("^```", "")
+                                        .replaceAll("```$", "").trim();
+                                JSONArray arr = new JSONArray(clean);
+                                java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+                                for (int i = 0; i < arr.length() && set.size() < 4; i++) {
+                                    String s = arr.optString(i, "").trim();
+                                    if (!s.isEmpty()) set.add(s);
+                                }
+                                callback.onSuccess(new java.util.ArrayList<>(set));
+                            } catch (Exception e) {
+                                callback.onFailure(e);
+                            }
+                        }
+                    });
+        } catch (JSONException e) {
+            callback.onFailure(e);
+        }
     }
 }

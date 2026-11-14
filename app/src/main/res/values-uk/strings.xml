@@ -73,4 +73,13 @@
     <string name="edit_translation_title">Ваш переклад</string>
     <string name="translation_hint">Переклад</string>
     <string name="save">Зберегти</string>
+    <string name="edit">Змінити</string>
+    <string name="info_added">Додано: %1$s</string>
+    <string name="info_next">Наступне повторення: %1$s</string>
+    <string name="info_reps">Успішних повторень поспіль: %1$d</string>
+    <string name="info_interval">Інтервал (днів): %1$d</string>
+    <string name="suggestions_title">Пропозиції</string>
+    <string name="suggestions_loading">Шукаємо варіанти…</string>
+    <string name="suggestions_offline">Пропозиції доступні онлайн. Можна ввести свій переклад.</string>
+    <string name="suggestions_failed">Не вдалося завантажити пропозиції. Можна ввести свій переклад.</string>
 </resources>

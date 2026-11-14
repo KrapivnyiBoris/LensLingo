@@ -71,4 +71,13 @@
     <string name="edit_translation_title">Your translation</string>
     <string name="translation_hint">Translation</string>
     <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="info_added">Added: %1$s</string>
+    <string name="info_next">Next review: %1$s</string>
+    <string name="info_reps">Successful reviews in a row: %1$d</string>
+    <string name="info_interval">Interval (days): %1$d</string>
+    <string name="suggestions_title">Suggestions</string>
+    <string name="suggestions_loading">Looking for suggestions…</string>
+    <string name="suggestions_offline">Suggestions are available online. You can type your own translation.</string>
+    <string name="suggestions_failed">Could not load suggestions. You can type your own translation.</string>
 </resources>
