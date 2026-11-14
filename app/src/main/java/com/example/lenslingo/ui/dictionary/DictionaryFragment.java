@@ -62,6 +62,12 @@ public class DictionaryFragment extends Fragment {
                 WordDetailsSheet.RESULT_DELETE, getViewLifecycleOwner(),
                 (key, bundle) -> viewModel.deleteWordById(bundle.getInt(WordDetailsSheet.KEY_ID)));
 
+        getParentFragmentManager().setFragmentResultListener(
+                WordDetailsSheet.RESULT_EDIT, getViewLifecycleOwner(),
+                (key, bundle) -> viewModel.updateTranslation(
+                        bundle.getInt(WordDetailsSheet.KEY_ID),
+                        bundle.getString(WordDetailsSheet.KEY_TRANSLATION)));
+
         viewModel.getToastMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null) {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();

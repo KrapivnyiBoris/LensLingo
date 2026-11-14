@@ -84,4 +84,8 @@ public class WordRepository {
             }
         });
     }
+
+    public void updateTranslation(int id, String translation) {
+        executor.execute(() -> wordDao.updateTranslation(id, translation));
+    }
 }

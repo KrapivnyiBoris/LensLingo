@@ -49,4 +49,7 @@ public interface WordDao {
 
     @Query("SELECT * FROM words WHERE id = :id")
     WordEntity getByIdSync(int id);
+
+    @Query("UPDATE words SET translation = :translation WHERE id = :id")
+    void updateTranslation(int id, String translation);
 }

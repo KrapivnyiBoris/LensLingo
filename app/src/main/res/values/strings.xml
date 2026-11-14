@@ -67,4 +67,8 @@
     <string name="notice_no_translation">No translations were produced for this text.</string>
     <string name="toast_downloading">Downloading the language pack (%s), one time only…</string>
     <string name="translation_label_offline">TRANSLATION (offline)</string>
+    <string name="edit_translation">Edit translation</string>
+    <string name="edit_translation_title">Your translation</string>
+    <string name="translation_hint">Translation</string>
+    <string name="save">Save</string>
 </resources>

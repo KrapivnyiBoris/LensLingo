@@ -69,4 +69,8 @@
     <string name="notice_no_translation">Для цього тексту не вдалося отримати переклад.</string>
     <string name="toast_downloading">Завантаження мовного пакета (%s), лише один раз…</string>
     <string name="translation_label_offline">ПЕРЕКЛАД (офлайн)</string>
+    <string name="edit_translation">Змінити переклад</string>
+    <string name="edit_translation_title">Ваш переклад</string>
+    <string name="translation_hint">Переклад</string>
+    <string name="save">Зберегти</string>
 </resources>

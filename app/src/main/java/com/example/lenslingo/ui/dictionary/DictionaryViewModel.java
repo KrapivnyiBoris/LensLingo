@@ -54,4 +54,8 @@ public class DictionaryViewModel extends AndroidViewModel {
     public void deleteWordById(int id) {
         repository.deleteById(id);
     }
+
+    public void updateTranslation(int id, String translation) {
+        repository.updateTranslation(id, translation);
+    }
 }

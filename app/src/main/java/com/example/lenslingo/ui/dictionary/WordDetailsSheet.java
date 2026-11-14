@@ -7,6 +7,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +27,8 @@ public class WordDetailsSheet extends BottomSheetDialogFragment {
 
     public static final String RESULT_DELETE = "word_delete";
     public static final String KEY_ID = "id";
+    public static final String RESULT_EDIT = "word_edit";
+    public static final String KEY_TRANSLATION = "translation_new";
 
     public static WordDetailsSheet newInstance(WordEntity w) {
         Bundle b = new Bundle();
@@ -82,6 +87,40 @@ public class WordDetailsSheet extends BottomSheetDialogFragment {
         ((TextView) view.findViewById(R.id.text_info)).setText(info);
 
         int id = a.getInt(KEY_ID);
+        TextView translationView = view.findViewById(R.id.text_translation);
+        view.findViewById(R.id.button_edit).setOnClickListener(v -> {
+            float d = getResources().getDisplayMetrics().density;
+            int pad = (int) (24 * d);
+
+            EditText input = new EditText(requireContext());
+            input.setInputType(InputType.TYPE_CLASS_TEXT);
+            input.setSingleLine(true);
+            input.setHint(R.string.translation_hint);
+            input.setText(translationView.getText());
+            input.setSelection(input.getText().length());
+
+            FrameLayout container = new FrameLayout(requireContext());
+            container.setPadding(pad, (int) (8 * d), pad, 0);
+            container.addView(input);
+
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.edit_translation_title)
+                    .setView(container)
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(R.string.save, (dialog, which) -> {
+                        String value = input.getText().toString().trim();
+                        if (value.isEmpty()) return;
+                        if (value.length() > 100) value = value.substring(0, 100);
+
+                        translationView.setText(value);
+                        Bundle result = new Bundle();
+                        result.putInt(KEY_ID, id);
+                        result.putString(KEY_TRANSLATION, value);
+                        getParentFragmentManager().setFragmentResult(RESULT_EDIT, result);
+                    })
+                    .show();
+        });
+
         view.findViewById(R.id.button_delete).setOnClickListener(v ->
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle(R.string.delete_confirm_title)
