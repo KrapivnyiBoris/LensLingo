@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.example.lenslingo.R;
+import com.example.lenslingo.data.Prefs;
 import com.example.lenslingo.data.local.WordEntity;
 import com.example.lenslingo.ocr.RemoteDataSource;
 import com.example.lenslingo.ocr.TranslationSuggester;
@@ -165,6 +166,11 @@ public class WordDetailsSheet extends BottomSheetDialogFragment {
                     getParentFragmentManager().setFragmentResult(RESULT_EDIT, result);
                 })
                 .show();
+
+        if (!Prefs.onlineSuggestions(requireContext())) {
+            status.setText(R.string.suggestions_disabled);
+            return;
+        }
 
         if (!isOnline()) {
             status.setText(R.string.suggestions_offline);

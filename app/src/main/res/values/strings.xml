@@ -31,7 +31,7 @@
     <string name="tab_text">Text</string>
     <string name="original">ORIGINAL</string>
     <string name="translation_label">TRANSLATION</string>
-    <string name="save_word">+ Save</string>
+    <string name="save_word">Save</string>
     <string name="point_camera">Point camera at text to scan</string>
     <string name="gallery">Gallery</string>
     <string name="take_photo">Take photo</string>
@@ -81,6 +81,11 @@
     <string name="suggestions_offline">Suggestions are available online. You can type your own translation.</string>
     <string name="suggestions_failed">Could not load suggestions. You can type your own translation.</string>
     <string name="from_dictionary">From your dictionary</string>
-    <string name="from_dictionary_alt">From your dictionary · ML Kit: %s</string>
-    <string name="in_dictionary">In dictionary</string>
+    <string name="dictionary_variant">In your dictionary: %s</string>
+    <string name="privacy">Privacy</string>
+    <string name="setting_online_translation">Online translation (Gemini)</string>
+    <string name="setting_online_translation_desc">Sends the photo and recognized words to Google Gemini for a more accurate translation. When off, everything is translated on your device.</string>
+    <string name="setting_online_suggestions">Online translation suggestions</string>
+    <string name="setting_online_suggestions_desc">Sends a single dictionary word to Google Gemini to suggest translations. When off, you can only type your own.</string>
+    <string name="suggestions_disabled">Online suggestions are turned off in Settings. You can type your own translation.</string>
 </resources>

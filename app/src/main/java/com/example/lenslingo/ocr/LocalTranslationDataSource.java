@@ -1,6 +1,9 @@
 package com.example.lenslingo.ocr;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
@@ -27,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class LocalTranslationDataSource {
 
@@ -102,6 +106,11 @@ public class LocalTranslationDataSource {
                     .isModelDownloaded(new TranslateRemoteModel.Builder(source).build()));
         } catch (Exception ignored) {
         }
+        if (!downloaded && !isOnline()) {
+            OcrLog.d("Translate model missing and no network");
+            out.notice = appContext.getString(R.string.notice_download);
+            return out;
+        }
         if (!downloaded) {
             toast(appContext.getString(R.string.toast_downloading, lang));
         }
@@ -113,7 +122,8 @@ public class LocalTranslationDataSource {
 
         try {
             long t0 = System.currentTimeMillis();
-            Tasks.await(translator.downloadModelIfNeeded(new DownloadConditions.Builder().build()));
+            Tasks.await(translator.downloadModelIfNeeded(new DownloadConditions.Builder().build()),
+                    60, TimeUnit.SECONDS);
             OcrLog.d("Translate model ready in " + (System.currentTimeMillis() - t0) + " ms");
         } catch (Exception e) {
             OcrLog.d("Translate model unavailable: " + e);
@@ -246,5 +256,14 @@ public class LocalTranslationDataSource {
                     OcrLog.d("Prefetch " + lang + ": " + (task.isSuccessful() ? "ok" : "failed"));
                     translator.close();
                 });
+    }
+
+    private boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager)
+                appContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network network = cm.getActiveNetwork();
+        if (network == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+        return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 }

@@ -13,7 +13,7 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minWidth="130dp"
+        android:minWidth="150dp"
         android:orientation="vertical"
         android:padding="12dp">
 
@@ -74,9 +74,15 @@
             android:insetBottom="0dp"
             android:minHeight="36dp"
             android:text="@string/save_word"
+            android:textColor="@color/white"
             android:textAllCaps="false"
             android:textSize="13sp"
             app:backgroundTint="@color/green_dark"
-            app:cornerRadius="10dp" />
+            app:cornerRadius="10dp"
+            android:maxLines="1"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="10sp"
+            android:autoSizeMaxTextSize="13sp"
+            android:autoSizeStepGranularity="1sp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

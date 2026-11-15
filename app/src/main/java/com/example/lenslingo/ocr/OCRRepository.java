@@ -7,6 +7,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.SystemClock;
 
+import com.example.lenslingo.data.Prefs;
 import com.example.lenslingo.data.local.AppDatabase;
 import com.example.lenslingo.data.local.GlossaryEntry;
 import com.example.lenslingo.data.model.OcrResult;
@@ -102,10 +103,11 @@ public class OCRRepository {
         if (local.words.isEmpty()) {
             OcrLog.d("RESULT: no text found");
             callback.onFailure(new IllegalStateException("No text found"));
-        } else if (isNetworkAvailable()) {
+        } else if (isNetworkAvailable() && Prefs.onlineTranslation(appContext)) {
             translateOnline(bitmap, local, callback);
         } else {
-            OcrLog.d("MODE offline: no network");
+            OcrLog.d("MODE offline: " + (Prefs.onlineTranslation(appContext)
+                    ? "no network" : "online translation disabled by user"));
             finishOffline(local, callback);
         }
     }
@@ -396,14 +398,12 @@ public class OCRRepository {
             String own = glossary.get(glossaryKey(w.shownText()));
             if (own == null) continue;
 
-            String mlKit = w.translation;
             w.fromGlossary = true;
-            w.translation = own;
+            w.glossaryTranslation = own;
+            if (w.translation == null || w.translation.isEmpty()) w.translation = own;
             w.highlight = true;
-            if (mlKit != null && !mlKit.equalsIgnoreCase(own)) w.altTranslation = mlKit;
 
-            OcrLog.d("GLOSSARY \"" + w.shownText() + "\": \"" + own + "\" (ML Kit: \""
-                    + (mlKit == null ? "" : mlKit) + "\")");
+            OcrLog.d("GLOSSARY \"" + w.shownText() + "\": dict=\"" + own + "\" main=\"" + w.translation + "\"");
         }
     }
 

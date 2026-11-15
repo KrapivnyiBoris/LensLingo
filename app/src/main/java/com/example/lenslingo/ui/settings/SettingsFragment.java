@@ -13,6 +13,8 @@ import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.lenslingo.R;
+import com.example.lenslingo.data.Prefs;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 public class SettingsFragment extends Fragment {
 
@@ -42,5 +44,15 @@ public class SettingsFragment extends Fragment {
             String tag = checkedId == R.id.radio_uk ? "uk" : "en";
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag));
         });
+
+        MaterialSwitch translation = view.findViewById(R.id.switch_online_translation);
+        translation.setChecked(Prefs.onlineTranslation(requireContext()));
+        translation.setOnCheckedChangeListener((b, checked) ->
+                Prefs.setOnlineTranslation(requireContext(), checked));
+
+        MaterialSwitch suggestions = view.findViewById(R.id.switch_online_suggestions);
+        suggestions.setChecked(Prefs.onlineSuggestions(requireContext()));
+        suggestions.setOnCheckedChangeListener((b, checked) ->
+                Prefs.setOnlineSuggestions(requireContext(), checked));
     }
 }

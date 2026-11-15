@@ -16,7 +16,7 @@ public class OcrWord {
     public int kind = KIND_WORD;
     public boolean highlight = true;
 
-    public String altTranslation;
+    public String glossaryTranslation;
     public boolean fromGlossary;
 
     public OcrWord(String text, String translation, float[] corners,

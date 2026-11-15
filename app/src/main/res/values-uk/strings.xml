@@ -32,7 +32,7 @@
     <string name="tab_text">Текст</string>
     <string name="original">ОРИГІНАЛ</string>
     <string name="translation_label">ПЕРЕКЛАД</string>
-    <string name="save_word">+ Зберегти</string>
+    <string name="save_word">Зберегти</string>
     <string name="point_camera">Наведіть камеру на текст</string>
     <string name="gallery">Галерея</string>
     <string name="take_photo">Зробити фото</string>
@@ -83,6 +83,11 @@
     <string name="suggestions_offline">Пропозиції доступні онлайн. Можна ввести свій переклад.</string>
     <string name="suggestions_failed">Не вдалося завантажити пропозиції. Можна ввести свій переклад.</string>
     <string name="from_dictionary">Зі словника</string>
-    <string name="from_dictionary_alt">Зі словника · ML Kit: %s</string>
-    <string name="in_dictionary">У словнику</string>
+    <string name="dictionary_variant">У словнику: %s</string>
+    <string name="privacy">Приватність</string>
+    <string name="setting_online_translation">Онлайн-переклад (Gemini)</string>
+    <string name="setting_online_translation_desc">Надсилає фото й розпізнані слова до Google Gemini для точнішого перекладу. Коли вимкнено, усе перекладається на вашому пристрої.</string>
+    <string name="setting_online_suggestions">Онлайн-пропозиції перекладу</string>
+    <string name="setting_online_suggestions_desc">Надсилає одне слово зі словника до Google Gemini, щоб запропонувати варіанти. Коли вимкнено, можна лише вводити свій переклад.</string>
+    <string name="suggestions_disabled">Онлайн-пропозиції вимкнено в налаштуваннях. Можна ввести свій переклад.</string>
 </resources>

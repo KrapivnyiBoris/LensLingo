@@ -224,15 +224,16 @@ public class ResultFragment extends Fragment {
                 ? "—" : currentLang.toUpperCase(Locale.ROOT));
 
         if (word.fromGlossary) {
-            popupAlt.setText(word.altTranslation != null
-                    ? getString(R.string.from_dictionary_alt, word.altTranslation)
+            boolean differs = word.glossaryTranslation != null
+                    && !word.glossaryTranslation.equalsIgnoreCase(word.translation);
+            popupAlt.setText(differs
+                    ? getString(R.string.dictionary_variant, word.glossaryTranslation)
                     : getString(R.string.from_dictionary));
             popupAlt.setVisibility(View.VISIBLE);
         } else {
             popupAlt.setVisibility(View.GONE);
         }
-        popupSave.setEnabled(!word.fromGlossary);
-        popupSave.setText(word.fromGlossary ? R.string.in_dictionary : R.string.save_word);
+        popupSave.setVisibility(word.fromGlossary ? View.GONE : View.VISIBLE);
 
         popup.setVisibility(View.INVISIBLE);
         popup.post(() -> positionPopup(word));
