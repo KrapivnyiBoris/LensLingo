@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class GeminiLatencyTest {
 
     private static final String TAG = "GeminiBench";
-    private static final int REPEATS = 5;
+    private static final int REPEATS = 10;
     private static final long PAUSE_MS = 5000;     // пауза між запитами, щоб не впертись у ліміт 15/хв
     private static final long TIMEOUT_MS = 30000;
     private static final long[] THRESHOLDS = {3000, 5000, 6000, 10000, 12000};
@@ -128,10 +128,15 @@ public class GeminiLatencyTest {
 
     private String summarize(String key, List<Sample> samples, String stamp) {
         List<Long> okTimes = new ArrayList<>();
+        List<Long> failTimes = new ArrayList<>();
         Map<String, Integer> reasons = new LinkedHashMap<>();
         for (Sample s : samples) {
-            if (s.ok) okTimes.add(s.ms);
-            else reasons.merge(s.reason.length() > 70 ? s.reason.substring(0, 70) : s.reason, 1, Integer::sum);
+            if (s.ok) {
+                okTimes.add(s.ms);
+            } else {
+                failTimes.add(s.ms);
+                reasons.merge(s.reason.length() > 70 ? s.reason.substring(0, 70) : s.reason, 1, Integer::sum);
+            }
         }
         Collections.sort(okTimes);
 
@@ -154,6 +159,7 @@ public class GeminiLatencyTest {
             }
         }
         if (!reasons.isEmpty()) sb.append(" | errors=").append(reasons);
+        if (!failTimes.isEmpty()) sb.append(" | fail_ms=").append(failTimes);
         return sb.toString();
     }
 
