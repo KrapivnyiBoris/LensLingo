@@ -7,6 +7,8 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.SystemClock;
 
+import com.example.lenslingo.data.local.AppDatabase;
+import com.example.lenslingo.data.local.GlossaryEntry;
 import com.example.lenslingo.data.model.OcrResult;
 import com.example.lenslingo.data.model.OcrWord;
 import com.google.mlkit.vision.common.InputImage;
@@ -256,7 +258,10 @@ public class OCRRepository {
         executor.execute(() -> {
             long start = SystemClock.elapsedRealtime();
             LocalTranslationDataSource.Outcome outcome =
-                    translationSource.translateWords(local.words, local.contextWords);            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
+                    translationSource.translateWords(local.words, local.contextWords);
+
+            applyGlossary(local.words, outcome.language);
+            OcrLog.d("Offline translation took " + (SystemClock.elapsedRealtime() - start) + " ms");
             OcrLog.dumpWords("OFFLINE_FINAL", local.words);
             for (Map.Entry<Integer, String> e : outcome.lines.entrySet()) {
                 OcrLog.d("OFFLINE_LINE " + e.getKey() + ": " + e.getValue());
@@ -374,5 +379,35 @@ public class OCRRepository {
                         + a.text + "\" and \"" + b.text + "\"");
             }
         }
+    }
+
+    private void applyGlossary(List<OcrWord> words, String lang) {
+        if (lang == null || "auto".equals(lang)) return;
+
+        List<GlossaryEntry> entries = AppDatabase.getInstance(appContext).wordDao().glossary(lang);
+        if (entries.isEmpty()) return;
+
+        Map<String, String> glossary = new HashMap<>();
+        for (GlossaryEntry e : entries) glossary.put(glossaryKey(e.word), e.translation);
+
+        for (OcrWord w : words) {
+            if (w.translation != null && w.translation.startsWith("(")) continue;
+
+            String own = glossary.get(glossaryKey(w.shownText()));
+            if (own == null) continue;
+
+            String mlKit = w.translation;
+            w.fromGlossary = true;
+            w.translation = own;
+            w.highlight = true;
+            if (mlKit != null && !mlKit.equalsIgnoreCase(own)) w.altTranslation = mlKit;
+
+            OcrLog.d("GLOSSARY \"" + w.shownText() + "\": \"" + own + "\" (ML Kit: \""
+                    + (mlKit == null ? "" : mlKit) + "\")");
+        }
+    }
+
+    private static String glossaryKey(String text) {
+        return text.replaceAll("^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$", "").toLowerCase(Locale.ROOT);
     }
 }

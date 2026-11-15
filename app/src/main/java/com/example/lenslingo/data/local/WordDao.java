@@ -52,4 +52,7 @@ public interface WordDao {
 
     @Query("UPDATE words SET translation = :translation WHERE id = :id")
     void updateTranslation(int id, String translation);
+
+    @Query("SELECT word, translation FROM words WHERE sourceLanguage = :lang")
+    List<GlossaryEntry> glossary(String lang);
 }

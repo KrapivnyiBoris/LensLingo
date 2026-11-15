@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.lenslingo.data.model.StatsData;
 import com.example.lenslingo.repository.StatsRepository;
 
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -28,15 +29,19 @@ public class StatsViewModel extends AndroidViewModel {
         return stats;
     }
 
-    public void load() {
-        executor.execute(() -> stats.postValue(repository.loadStats()));
+    private Locale locale = Locale.getDefault();
+
+    public void load(Locale locale) {
+        this.locale = locale;
+        executor.execute(() -> stats.postValue(repository.loadStats(locale)));
     }
 
     public void seedDemo() {
+        final Locale l = locale;
         repository.seedDemoData();
         executor.execute(() -> {
             try { Thread.sleep(400); } catch (InterruptedException ignored) {}
-            stats.postValue(repository.loadStats());
+            stats.postValue(repository.loadStats(l));
         });
     }
 }

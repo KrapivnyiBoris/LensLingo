@@ -51,6 +51,9 @@ public class ResultFragment extends Fragment {
     private String currentLang;
     private Bitmap currentImage;
 
+    private TextView popupAlt;
+    private TextView popupSave;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -75,6 +78,14 @@ public class ResultFragment extends Fragment {
         textTab = view.findViewById(R.id.layout_text_tab);
         TextView languageText = view.findViewById(R.id.text_source_language);
         TextView notice = view.findViewById(R.id.text_notice);
+        popupAlt = view.findViewById(R.id.popup_alt);
+        popupSave = view.findViewById(R.id.popup_save);
+        popupSave.setOnClickListener(v -> {
+            if (popupTarget != null) {
+                viewModel.saveWord(popupTarget, currentLang, currentImage);
+            }
+            dismissPopup();
+        });
 
         view.findViewById(R.id.button_back).setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack(
@@ -92,13 +103,6 @@ public class ResultFragment extends Fragment {
 
         imageBoxes.setOnWordTapListener(this::selectWord);
         imageBoxes.setOnEmptyTapListener(this::dismissPopup);
-
-        view.findViewById(R.id.popup_save).setOnClickListener(v -> {
-            if (popupTarget != null) {
-                viewModel.saveWord(popupTarget, currentLang, currentImage);
-            }
-            dismissPopup();
-        });
 
         sharedViewModel.getResult().observe(getViewLifecycleOwner(), (OcrResult result) -> {
             if (result == null) return;
@@ -218,6 +222,17 @@ public class ResultFragment extends Fragment {
         popupTranslation.setText(word.translation != null ? word.translation : "—");
         popupLang.setText(currentLang == null || "auto".equals(currentLang)
                 ? "—" : currentLang.toUpperCase(Locale.ROOT));
+
+        if (word.fromGlossary) {
+            popupAlt.setText(word.altTranslation != null
+                    ? getString(R.string.from_dictionary_alt, word.altTranslation)
+                    : getString(R.string.from_dictionary));
+            popupAlt.setVisibility(View.VISIBLE);
+        } else {
+            popupAlt.setVisibility(View.GONE);
+        }
+        popupSave.setEnabled(!word.fromGlossary);
+        popupSave.setText(word.fromGlossary ? R.string.in_dictionary : R.string.save_word);
 
         popup.setVisibility(View.INVISIBLE);
         popup.post(() -> positionPopup(word));

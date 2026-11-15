@@ -82,4 +82,7 @@
     <string name="suggestions_loading">Шукаємо варіанти…</string>
     <string name="suggestions_offline">Пропозиції доступні онлайн. Можна ввести свій переклад.</string>
     <string name="suggestions_failed">Не вдалося завантажити пропозиції. Можна ввести свій переклад.</string>
+    <string name="from_dictionary">Зі словника</string>
+    <string name="from_dictionary_alt">Зі словника · ML Kit: %s</string>
+    <string name="in_dictionary">У словнику</string>
 </resources>

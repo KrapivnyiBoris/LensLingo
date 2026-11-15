@@ -91,7 +91,7 @@ public class StatsFragment extends Fragment {
             }
         });
 
-        viewModel.load();
+        viewModel.load(getResources().getConfiguration().getLocales().get(0));
     }
 
     private static final int[] DOT_COLORS = {
@@ -137,7 +137,9 @@ public class StatsFragment extends Fragment {
 
     private String languageName(String code) {
         if (code == null || code.equals("auto")) return getString(R.string.unknown);
-        String name = new Locale(code).getDisplayLanguage(Locale.ENGLISH);
-        return name.isEmpty() ? code : name;
+        Locale ui = getResources().getConfiguration().getLocales().get(0);
+        String name = new Locale(code).getDisplayLanguage(ui);
+        if (name.isEmpty()) return code;
+        return name.substring(0, 1).toUpperCase(ui) + name.substring(1);
     }
 }

@@ -40,7 +40,7 @@ public class StatsRepository {
     }
 
     // Блокуючий метод: викликати лише з фонового потоку
-    public StatsData loadStats() {
+    public StatsData loadStats(Locale locale) {
         long now = System.currentTimeMillis();
         long offset = TimeZone.getDefault().getOffset(now);
         long today = (now + offset) / DAY;
@@ -66,14 +66,15 @@ public class StatsRepository {
         Map<Long, Integer> counts = new HashMap<>();
         for (DayCount dc : reviewDao.countsSince(offset, since)) counts.put(dc.day, dc.cnt);
 
-        SimpleDateFormat fmt = new SimpleDateFormat("EEE", Locale.ENGLISH);
+        SimpleDateFormat fmt = new SimpleDateFormat("EEE", locale);
         data.dayLabels = new String[7];
         data.dayCounts = new int[7];
         for (int i = 0; i < 7; i++) {
             long dayNumber = today - 6 + i;
             Integer c = counts.get(dayNumber);
             data.dayCounts[i] = c == null ? 0 : c;
-            data.dayLabels[i] = fmt.format(now - (6 - i) * DAY);
+            String label = fmt.format(now - (6 - i) * DAY);
+            data.dayLabels[i] = label.substring(0, 1).toUpperCase(locale) + label.substring(1);
         }
         return data;
     }

@@ -80,4 +80,7 @@
     <string name="suggestions_loading">Looking for suggestions…</string>
     <string name="suggestions_offline">Suggestions are available online. You can type your own translation.</string>
     <string name="suggestions_failed">Could not load suggestions. You can type your own translation.</string>
+    <string name="from_dictionary">From your dictionary</string>
+    <string name="from_dictionary_alt">From your dictionary · ML Kit: %s</string>
+    <string name="in_dictionary">In dictionary</string>
 </resources>

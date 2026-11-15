@@ -54,6 +54,16 @@
             android:textColor="@color/ink_secondary"
             android:textSize="13sp" />
 
+        <TextView
+            android:id="@+id/popup_alt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxWidth="220dp"
+            android:textColor="@color/ink_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/popup_save"
             style="@style/Widget.Material3.Button"
